@@ -2,11 +2,11 @@
 
 import { QualityMode, LightingIntensity, ColorGradingStyle, PromptSuggestion } from "./types";
 
-export const DEFAULT_PROMPT = `Cinematic studio portrait style, extremely detailed and ultra realistic face with natural skin pores, fine textures, and authentic features, sharp focus on facial details, vibrant yet natural colors, realistic three-dimensional lighting and shadows, dramatic but soft cinematic studio lighting, smooth depth of field, professional cinematic color grading, bright and attractive background, hyper-detailed, lifelike`;
+export const DEFAULT_PROMPT = `Cinema style, extremely detailed and ultra realistic, fine textures, authentic features, sharp focus, vibrant yet natural colors, realistic three-dimensional lighting and shadows, dramatic but soft cinematic studio lighting, smooth depth of field, professional cinematic color grading, bright and attractive background, hyper-detailed, lifelike`;
 
 export const QUALITY_MODIFIERS: Record<QualityMode, string> = {
   standard: "",
-  high: ", 4K resolution, masterpiece quality, high-end editorial photography style"
+  high: ", 4K resolution, ensuring masterpiece quality and high-end editorial photography style"
 };
 
 export const LIGHTING_STYLES: Record<LightingIntensity, string> = {

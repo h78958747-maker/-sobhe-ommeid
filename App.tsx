@@ -155,7 +155,7 @@ function App() {
       setStatus({ isLoading: true, error: null });
       setResultImage(null);
       try {
-        const prompt = t.swapPrompt;
+        const prompt = t.swapPrompt + QUALITY_MODIFIERS[quality];
         const img = await generateFaceSwap(selectedImage, swapFaceImage, prompt);
         setResultImage(img);
         await addToHistory(img, prompt, aspectRatio);
