@@ -22,7 +22,7 @@ function App() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
 
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("AUTO"); // Default to AUTO based on request
   const [quality, setQuality] = useState<QualityMode>('high');
   const [status, setStatus] = useState<ProcessingState>({ isLoading: false, error: null });
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -268,7 +268,20 @@ function App() {
                   {/* Aspect Ratio Selector */}
                   <div className="space-y-2">
                      <p className="text-[10px] uppercase font-bold text-gray-500">{t.aspectRatio}</p>
-                     <div className="grid grid-cols-5 gap-2">
+                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                        {/* Auto Option */}
+                        <button
+                            onClick={() => setAspectRatio('AUTO')}
+                            className={`
+                              relative group flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-300
+                              ${aspectRatio === 'AUTO' 
+                                ? 'bg-white/10 border-studio-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.15)]' 
+                                : 'bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5'}
+                            `}
+                          >
+                            <div className={`border-[1.5px] border-dashed rounded-[2px] mb-1.5 transition-all ${aspectRatio === 'AUTO' ? 'border-studio-gold bg-studio-gold/20' : 'border-gray-500 group-hover:border-gray-300'} w-6 h-4`}></div>
+                            <span className={`text-[9px] font-bold ${aspectRatio === 'AUTO' ? 'text-studio-gold' : 'text-gray-500'}`}>{t.ratioAuto}</span>
+                        </button>
                         {[
                           { r: '1:1', w: 'w-4', h: 'h-4' },
                           { r: '4:3', w: 'w-5', h: 'h-[15px]' },

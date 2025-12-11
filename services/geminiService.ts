@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import { MODEL_NAME } from "../constants";
 import { AspectRatio } from "../types";
@@ -35,9 +36,12 @@ export const generateEditedImage = async (
     mimeType = match[1];
   }
 
-  // Handle AUTO aspect ratio: The API does not support 'AUTO'.
-  // We default to undefined (letting API use its default, usually 1:1) or pass the explicit ratio.
-  const apiAspectRatio = aspectRatio === 'AUTO' ? undefined : aspectRatio;
+  // Handle AUTO aspect ratio: If AUTO, we leave it undefined (not key present),
+  // which lets the model decide (often preserving the input ratio or defaulting to square).
+  const imageConfig: any = {};
+  if (aspectRatio !== 'AUTO') {
+      imageConfig.aspectRatio = aspectRatio;
+  }
 
   try {
     const response = await ai.models.generateContent({
@@ -56,9 +60,7 @@ export const generateEditedImage = async (
         ],
       },
       config: {
-        imageConfig: {
-          aspectRatio: apiAspectRatio,
-        }
+        imageConfig: imageConfig
       }
     });
 
