@@ -23,6 +23,52 @@ const getMimeType = (b64: string) => {
 };
 
 /**
+ * Optimizes an image by resizing it to a safe maximum dimension and converting to JPEG.
+ * This prevents payload size limits and timeouts (XHR Error Code 6).
+ */
+const optimizeImage = (base64Str: string, maxWidth = 1536): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      
+      // Calculate new dimensions if image is too large
+      // 1536px is a good balance for high quality (approx 2MP) without hitting typical 10MB+ payload limits
+      if (width > maxWidth || height > maxWidth) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        resolve(base64Str); // Fallback
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      // Convert to JPEG with 0.90 quality - significantly smaller than PNG
+      resolve(canvas.toDataURL('image/jpeg', 0.90));
+    };
+    img.onerror = () => {
+      console.warn("Failed to optimize image, using original.");
+      resolve(base64Str);
+    };
+    img.src = base64Str;
+  });
+};
+
+/**
  * Sends an image and a text prompt to Gemini to generate an edited/transformed version.
  */
 export const generateEditedImage = async (
@@ -31,6 +77,9 @@ export const generateEditedImage = async (
   aspectRatio: AspectRatio = "1:1"
 ): Promise<string> => {
   const ai = getGenAI();
+  
+  // Optimize input image to prevent XHR errors
+  const optimizedImage = await optimizeImage(base64Image);
 
   // Handle AUTO aspect ratio
   const imageConfig: any = {};
@@ -45,8 +94,8 @@ export const generateEditedImage = async (
         parts: [
           {
             inlineData: {
-              mimeType: getMimeType(base64Image),
-              data: cleanBase64(base64Image),
+              mimeType: getMimeType(optimizedImage),
+              data: cleanBase64(optimizedImage),
             },
           },
           {
@@ -83,6 +132,13 @@ export const generateFaceSwap = async (
 ): Promise<string> => {
   const ai = getGenAI();
 
+  // Optimize both images.
+  // We use slightly lower max resolution for face swap inputs to ensure the combined payload stays safe.
+  const [optTarget, optSource] = await Promise.all([
+      optimizeImage(targetBase64, 1280), 
+      optimizeImage(sourceBase64, 1280)
+  ]);
+
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
@@ -90,14 +146,14 @@ export const generateFaceSwap = async (
         parts: [
           {
             inlineData: {
-              mimeType: getMimeType(targetBase64),
-              data: cleanBase64(targetBase64),
+              mimeType: getMimeType(optTarget),
+              data: cleanBase64(optTarget),
             },
           },
           {
             inlineData: {
-              mimeType: getMimeType(sourceBase64),
-              data: cleanBase64(sourceBase64),
+              mimeType: getMimeType(optSource),
+              data: cleanBase64(optSource),
             },
           },
           {
@@ -105,9 +161,7 @@ export const generateFaceSwap = async (
           },
         ],
       },
-      // Face swap generally preserves the aspect ratio of the target, or we can leave it to the model.
-      // Usually, for face swap, we don't force a specific AR unless the user explicitly wants to crop/change it.
-      // We'll leave it undefined to let the model follow the target image.
+      // Face swap generally preserves the aspect ratio of the target.
       config: {} 
     });
 

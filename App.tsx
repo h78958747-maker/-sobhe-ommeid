@@ -61,8 +61,8 @@ function App() {
   const [batchQueue, setBatchQueue] = useState<BatchItem[]>([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
-  // Improved Modern Logo
-  const LOGO_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23facc15"/><stop offset="1" stop-color="%23ca8a04"/></linearGradient></defs><rect width="200" height="200" rx="40" fill="%2318181b"/><circle cx="100" cy="100" r="85" fill="none" stroke="url(%23gold)" stroke-width="2" stroke-opacity="0.3"/><circle cx="100" cy="100" r="65" fill="none" stroke="url(%23gold)" stroke-width="4" stroke-dasharray="10 15"/><path d="M100 40 L100 20 M100 160 L100 180 M40 100 L20 100 M160 100 L180 100 M58 58 L44 44 M142 142 L156 156 M142 58 L156 44 M58 142 L44 156" stroke="url(%23gold)" stroke-width="6" stroke-linecap="round"/><circle cx="100" cy="100" r="30" fill="url(%23gold)"/><path d="M100 85 A 15 15 0 0 1 115 100" stroke="%23713f12" stroke-width="3" fill="none" opacity="0.5"/><text x="100" y="165" font-family="sans-serif" font-weight="900" font-size="20" fill="%23facc15" text-anchor="middle" dy="0">امید</text><text x="100" y="55" font-family="sans-serif" font-weight="900" font-size="20" fill="%23facc15" text-anchor="middle" dy="0">صبح</text></svg>`;
+  // Updated Logo URL
+  const LOGO_URL = "https://sobheommid.com/_nuxt/logo.BtixDU2P.svg";
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -288,8 +288,8 @@ function App() {
         {/* HEADER */}
         <header className="flex items-center justify-between animate-stagger-1 pb-4 border-b border-white/5">
            <div className="flex items-center gap-4 select-none">
-              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(250,204,21,0.2)] hover:shadow-studio-gold/40 transition-shadow duration-500 bg-black">
-                 <img src={LOGO_SVG} alt="Logo" className="w-full h-full object-cover" />
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(250,204,21,0.2)] hover:shadow-studio-gold/40 transition-shadow duration-500 bg-black/50 p-1">
+                 <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
                  <h1 className="text-xl md:text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">{t.instituteName}</h1>
