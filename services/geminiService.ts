@@ -26,7 +26,7 @@ const getMimeType = (b64: string) => {
  * Optimizes an image by resizing it to a safe maximum dimension and converting to JPEG.
  * This prevents payload size limits and timeouts (XHR Error Code 6).
  */
-const optimizeImage = (base64Str: string, maxWidth = 1536): Promise<string> => {
+const optimizeImage = (base64Str: string, maxWidth = 1536, quality = 0.9): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -35,7 +35,6 @@ const optimizeImage = (base64Str: string, maxWidth = 1536): Promise<string> => {
       let height = img.height;
       
       // Calculate new dimensions if image is too large
-      // 1536px is a good balance for high quality (approx 2MP) without hitting typical 10MB+ payload limits
       if (width > maxWidth || height > maxWidth) {
         if (width > height) {
           height = Math.round((height * maxWidth) / width);
@@ -56,9 +55,13 @@ const optimizeImage = (base64Str: string, maxWidth = 1536): Promise<string> => {
         return;
       }
 
+      // Draw with white background to handle transparency if converting to JPEG
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
-      // Convert to JPEG with 0.90 quality - significantly smaller than PNG
-      resolve(canvas.toDataURL('image/jpeg', 0.90));
+      
+      // Convert to JPEG with specified quality
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = () => {
       console.warn("Failed to optimize image, using original.");
@@ -79,7 +82,8 @@ export const generateEditedImage = async (
   const ai = getGenAI();
   
   // Optimize input image to prevent XHR errors
-  const optimizedImage = await optimizeImage(base64Image);
+  // 1536px @ 0.85 quality is a good balance
+  const optimizedImage = await optimizeImage(base64Image, 1536, 0.85);
 
   // Handle AUTO aspect ratio
   const imageConfig: any = {};
@@ -133,10 +137,11 @@ export const generateFaceSwap = async (
   const ai = getGenAI();
 
   // Optimize both images.
-  // We use slightly lower max resolution for face swap inputs to ensure the combined payload stays safe.
+  // We use stricter limits (1024px, 0.8 quality) for face swap because sending 2 images
+  // doubles the payload size, which is the primary cause of "RPC failed due to xhr error".
   const [optTarget, optSource] = await Promise.all([
-      optimizeImage(targetBase64, 1280), 
-      optimizeImage(sourceBase64, 1280)
+      optimizeImage(targetBase64, 1024, 0.8), 
+      optimizeImage(sourceBase64, 1024, 0.8)
   ]);
 
   try {

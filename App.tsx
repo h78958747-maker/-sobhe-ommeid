@@ -288,7 +288,7 @@ function App() {
         {/* HEADER */}
         <header className="flex items-center justify-between animate-stagger-1 pb-4 border-b border-white/5">
            <div className="flex items-center gap-4 select-none">
-              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(250,204,21,0.2)] hover:shadow-studio-gold/40 transition-shadow duration-500 bg-black/50 p-1">
+              <div className="w-12 h-12 md:w-20 md:h-20 rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(250,204,21,0.2)] hover:shadow-studio-gold/40 transition-shadow duration-500 bg-transparent p-1">
                  <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
