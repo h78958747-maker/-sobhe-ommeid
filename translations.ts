@@ -1,4 +1,5 @@
 
+
 import { Language } from "./types";
 
 export const translations: Record<Language, Record<string, string>> = {
@@ -107,7 +108,15 @@ export const translations: Record<Language, Record<string, string>> = {
     batchError: "Error",
     batchDescription: "This system is equipped with an advanced image generation capability.",
     // Comparison
-    sliderInstruction: "Drag the slider to compare"
+    sliderInstruction: "Drag the slider to compare",
+    // Face Swap
+    modePortrait: "Portrait Studio",
+    modeFaceSwap: "Face Swap",
+    labelTarget: "Base Image (Body)",
+    labelSource: "Face Reference",
+    swapFaces: "Swap Faces",
+    processingSwap: "Swapping Faces...",
+    swapPrompt: "Swap the face from the second image onto the person in the first image. Keep the exact lighting, background, and style of the first image. Seamless, photorealistic blend."
   },
   fa: {
     instituteName: "موسسه صبح امید",
@@ -214,6 +223,14 @@ export const translations: Record<Language, Record<string, string>> = {
     batchError: "خطا",
     batchDescription: "سیستم تولید همزمان تصویر.",
     // Comparison
-    sliderInstruction: "اسلایدر را بکشید تا مقایسه کنید"
+    sliderInstruction: "اسلایدر را بکشید تا مقایسه کنید",
+    // Face Swap
+    modePortrait: "استودیو پرتره",
+    modeFaceSwap: "جابجایی چهره",
+    labelTarget: "تصویر پایه (بدن)",
+    labelSource: "چهره مرجع",
+    swapFaces: "جابجایی چهره‌ها",
+    processingSwap: "در حال جابجایی چهره...",
+    swapPrompt: "چهره تصویر دوم را روی صورت فرد در تصویر اول قرار بده. نورپردازی، پس‌زمینه و استایل تصویر اول باید کاملاً حفظ شود. ترکیب باید بسیار طبیعی و فتورئالیستیک باشد."
   }
 };

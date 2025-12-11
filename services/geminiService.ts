@@ -16,6 +16,12 @@ const getGenAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+const cleanBase64 = (b64: string) => b64.split(',')[1] || b64;
+const getMimeType = (b64: string) => {
+  const match = b64.match(/^data:(.*);base64,/);
+  return match && match[1] ? match[1] : 'image/jpeg';
+};
+
 /**
  * Sends an image and a text prompt to Gemini to generate an edited/transformed version.
  */
@@ -26,18 +32,7 @@ export const generateEditedImage = async (
 ): Promise<string> => {
   const ai = getGenAI();
 
-  // Remove data URL prefix if present (e.g., "data:image/png;base64,")
-  const cleanBase64 = base64Image.split(',')[1] || base64Image;
-  
-  // Determine mime type roughly or default to png, though the API is flexible.
-  let mimeType = 'image/jpeg';
-  const match = base64Image.match(/^data:(.*);base64,/);
-  if (match && match[1]) {
-    mimeType = match[1];
-  }
-
-  // Handle AUTO aspect ratio: If AUTO, we leave it undefined (not key present),
-  // which lets the model decide (often preserving the input ratio or defaulting to square).
+  // Handle AUTO aspect ratio
   const imageConfig: any = {};
   if (aspectRatio !== 'AUTO') {
       imageConfig.aspectRatio = aspectRatio;
@@ -50,8 +45,8 @@ export const generateEditedImage = async (
         parts: [
           {
             inlineData: {
-              mimeType: mimeType,
-              data: cleanBase64,
+              mimeType: getMimeType(base64Image),
+              data: cleanBase64(base64Image),
             },
           },
           {
@@ -64,25 +59,83 @@ export const generateEditedImage = async (
       }
     });
 
+    return handleResponse(response);
+
+  } catch (error: any) {
+    console.error("Gemini API Error:", error);
+    if (error.message && (error.message.includes("Model Refusal") || error.message.includes("Finish Reason") || error.message.includes("safety"))) {
+        throw error;
+    }
+    throw new Error(error.message || "Failed to generate image.");
+  }
+};
+
+/**
+ * Performs a face swap by sending two images:
+ * 1. Target Image (Body/Background)
+ * 2. Source Image (Face)
+ * And a text prompt instructing the swap.
+ */
+export const generateFaceSwap = async (
+  targetBase64: string,
+  sourceBase64: string,
+  prompt: string
+): Promise<string> => {
+  const ai = getGenAI();
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: getMimeType(targetBase64),
+              data: cleanBase64(targetBase64),
+            },
+          },
+          {
+            inlineData: {
+              mimeType: getMimeType(sourceBase64),
+              data: cleanBase64(sourceBase64),
+            },
+          },
+          {
+            text: prompt,
+          },
+        ],
+      },
+      // Face swap generally preserves the aspect ratio of the target, or we can leave it to the model.
+      // Usually, for face swap, we don't force a specific AR unless the user explicitly wants to crop/change it.
+      // We'll leave it undefined to let the model follow the target image.
+      config: {} 
+    });
+
+    return handleResponse(response);
+
+  } catch (error: any) {
+    console.error("Gemini Face Swap Error:", error);
+    throw new Error(error.message || "Failed to swap faces.");
+  }
+};
+
+const handleResponse = (response: any): string => {
     const candidate = response.candidates?.[0];
 
     if (!candidate) {
        throw new Error("No candidates returned from the model. The service might be temporarily unavailable.");
     }
 
-    // Check for safety finish reason
     if (candidate.finishReason === "SAFETY") {
-      throw new Error("Generation was blocked due to safety settings. The model detected potential policy violations in the image or prompt.");
+      throw new Error("Generation was blocked due to safety settings. The model detected potential policy violations.");
     }
 
-    // Check for OTHER/IMAGE_OTHER which is common for person generation refusals
     if (candidate.finishReason === "IMAGE_OTHER" || candidate.finishReason === "OTHER") {
-         throw new Error("The AI model refused to process this request (Finish Reason: IMAGE_OTHER). This usually happens when the prompt explicitly asks to 'preserve identity' or 'likeness'. Please try removing phrases like 'exact likeness' from your prompt and focus on the visual style instead.");
+         throw new Error("The AI model refused to process this request (Refusal). Please modify your prompt or images.");
     }
 
     const parts = candidate.content?.parts;
     
-    // Sometimes the model refuses by returning text instead of an image, or returns nothing if completely blocked.
     if (!parts || parts.length === 0) {
        throw new Error(`The model returned no content. Finish reason: ${candidate.finishReason || 'Unknown'}`);
     }
@@ -94,23 +147,12 @@ export const generateEditedImage = async (
       }
     }
 
-    // 2. If no image found, check for text (which usually contains the refusal explanation)
+    // 2. If no image found, check for text
     for (const part of parts) {
       if (part.text) {
         throw new Error(`Model Refusal: ${part.text}`);
       }
     }
 
-    // 3. Fallback if parts exist but contain neither valid image nor text
     throw new Error("No image data found in the response.");
-
-  } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    // If it's one of our specific errors, throw it as is.
-    if (error.message && (error.message.includes("Model Refusal") || error.message.includes("Finish Reason") || error.message.includes("safety"))) {
-        throw error;
-    }
-    // Return a clean error message to the UI
-    throw new Error(error.message || "Failed to generate image.");
-  }
 };

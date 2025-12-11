@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { BatchItem } from '../types';
@@ -7,9 +8,17 @@ interface ImageUploadProps {
   onImageSelected: (base64: string | string[]) => void;
   selectedImage: string | null;
   queue?: BatchItem[];
+  title?: string;
+  className?: string;
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, selectedImage, queue = [] }) => {
+export const ImageUpload: React.FC<ImageUploadProps> = ({ 
+  onImageSelected, 
+  selectedImage, 
+  queue = [],
+  title,
+  className = ""
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -53,7 +62,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, selec
   };
 
   return (
-    <div className="w-full perspective-1000 group/container space-y-4">
+    <div className={`w-full perspective-1000 group/container space-y-4 ${className}`}>
       <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
       
       {!selectedImage ? (
@@ -62,7 +71,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, selec
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           className={`
-            relative h-80 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 ease-cinematic transform-style-3d
+            relative h-64 md:h-80 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 ease-cinematic transform-style-3d
             border border-dashed backdrop-blur-md overflow-hidden
             ${dragActive 
               ? 'border-cyan-400 bg-cyan-900/20 scale-[1.02] shadow-neon-blue' 
@@ -80,22 +89,22 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, selec
 
           {/* Icon */}
           <div className={`
-            relative z-10 w-24 h-24 mb-6 rounded-full flex items-center justify-center transition-all duration-500
+            relative z-10 w-20 h-20 mb-6 rounded-full flex items-center justify-center transition-all duration-500
             ${isHovered ? 'bg-white text-black scale-110 shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-white/10 text-white/50'}
           `}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
           </div>
           
           <div className="relative z-10 text-center space-y-2">
-            <p className="text-xl font-bold tracking-tight text-white group-hover/container:tracking-wide transition-all">Upload Reference</p>
-            <p className="text-sm text-gray-400">Drag & drop or click to browse</p>
+            <p className="text-lg font-bold tracking-tight text-white group-hover/container:tracking-wide transition-all">{title || "Upload Reference"}</p>
+            <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
           </div>
         </div>
       ) : (
-        <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 bg-black/40 animate-scale-up group">
-          <img src={selectedImage} alt="Original" className="w-full h-[350px] object-contain transition-transform duration-700 group-hover:scale-105" />
+        <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 bg-black/40 animate-scale-up group h-[350px]">
+          <img src={selectedImage} alt="Original" className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" />
           
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6">
              <div className="flex justify-end gap-2">
@@ -108,7 +117,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, selec
              </div>
              <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/80">
                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></div>
-               Active Source
+               {title || "Active Source"}
              </span>
           </div>
         </div>

@@ -18,6 +18,8 @@ export type LightingIntensity = 'soft' | 'cinematic' | 'dramatic' | 'intense';
 
 export type ColorGradingStyle = 'none' | 'warm_vintage' | 'cool_noir' | 'teal_orange' | 'classic_bw';
 
+export type AppMode = 'portrait' | 'faceswap';
+
 export interface HistoryItem {
   id: string;
   imageUrl: string;
@@ -30,6 +32,7 @@ export interface HistoryItem {
   creativityLevel?: number;
   lighting?: LightingIntensity;
   colorGrading?: ColorGradingStyle;
+  mode?: AppMode;
 }
 
 export type Language = 'en' | 'fa';
