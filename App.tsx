@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { ImageUpload } from './components/ImageUpload';
 import { Button } from './components/Button';
@@ -21,7 +19,7 @@ function App() {
   
   // App Mode State
   const [appMode, setAppMode] = useState<AppMode>('portrait');
-
+  
   // Image State
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // Acts as "Target/Base" in Face Swap
   const [swapFaceImage, setSwapFaceImage] = useState<string | null>(null); // "Source/Face" in Face Swap

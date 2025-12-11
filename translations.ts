@@ -116,7 +116,11 @@ export const translations: Record<Language, Record<string, string>> = {
     labelSource: "Face Reference",
     swapFaces: "Swap Faces",
     processingSwap: "Swapping Faces...",
-    swapPrompt: "Swap the face from the second image onto the body in the first image. Crucial: Automatically adjust skin tone, color temperature, and grain to perfectly match the target body. Maintain the subtle facial expressions and micro-details of the source face. Ensure seamless blending with no visible edges."
+    swapPrompt: "Swap the face from the second image onto the body in the first image. Crucial: Automatically adjust skin tone, color temperature, and grain to perfectly match the target body. Maintain the subtle facial expressions and micro-details of the source face. Ensure seamless blending with no visible edges.",
+    // API Key
+    apiKeyTitle: "Studio Access",
+    apiKeyDesc: "To access the cinematic AI engine, please connect your Google API key.",
+    connectApi: "Connect Intelligence"
   },
   fa: {
     instituteName: "موسسه صبح امید",
@@ -231,6 +235,10 @@ export const translations: Record<Language, Record<string, string>> = {
     labelSource: "چهره مرجع",
     swapFaces: "جابجایی چهره‌ها",
     processingSwap: "در حال جابجایی چهره...",
-    swapPrompt: "چهره تصویر دوم را روی بدن تصویر اول قرار بده. حیاتی: برای ترکیب طبیعی، رنگ پوست، دما و بافت را دقیقاً با بدن تصویر اول هماهنگ کن. حالات ظریف چهره و ریز-جزئیات صورت مرجع را حفظ کن. ترکیب باید کاملاً یکپارچه و بدون مرز باشد."
+    swapPrompt: "چهره تصویر دوم را روی بدن تصویر اول قرار بده. حیاتی: برای ترکیب طبیعی، رنگ پوست، دما و بافت را دقیقاً با بدن تصویر اول هماهنگ کن. حالات ظریف چهره و ریز-جزئیات صورت مرجع را حفظ کن. ترکیب باید کاملاً یکپارچه و بدون مرز باشد.",
+    // API Key
+    apiKeyTitle: "دسترسی استودیو",
+    apiKeyDesc: "برای دسترسی به موتور هوش مصنوعی سینمایی، لطفاً کلید API گوگل خود را متصل کنید.",
+    connectApi: "اتصال به هوش مصنوعی"
   }
 };
