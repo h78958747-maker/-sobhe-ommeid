@@ -3,12 +3,15 @@ import { ImageUpload } from './components/ImageUpload';
 import { Button } from './components/Button';
 import { ChatInterface } from './components/ChatInterface';
 import { ImageCropper } from './components/ImageCropper';
+import { CameraCapture } from './components/CameraCapture';
+import { HistoryGallery } from './components/HistoryGallery';
+import { ImageEditor } from './components/ImageEditor';
 import { LivingBackground } from './components/LivingBackground';
 import { ComparisonView } from './components/ComparisonView';
 import { generateEditedImage, generateFaceSwap } from './services/geminiService';
 import { generateInstantVideo } from './services/clientVideoService';
 import { saveHistoryItem } from './services/storageService';
-import { DEFAULT_PROMPT, QUALITY_MODIFIERS, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LOADING_MESSAGES, LIGHTING_ICONS } from './constants';
+import { DEFAULT_PROMPT, QUALITY_MODIFIERS, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LOADING_MESSAGES, LIGHTING_ICONS, CINEMATIC_KEYWORDS } from './constants';
 import { ProcessingState, AspectRatio, HistoryItem, Language, ChatMessage, QualityMode, LightingIntensity, ColorGradingStyle, Theme, BatchItem, AppMode } from './types';
 import { translations } from './translations';
 
@@ -32,10 +35,15 @@ function App() {
   const [status, setStatus] = useState<ProcessingState>({ isLoading: false, error: null });
   const [history, setHistory] = useState<HistoryItem[]>([]);
   
-  // Cropper State
+  // Cropper & Camera State
   const [isCropping, setIsCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<'base' | 'face'>('base');
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraTarget, setCameraTarget] = useState<'base' | 'face'>('base');
+
+  // History Gallery State
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   // Loading Message State
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
@@ -46,11 +54,14 @@ function App() {
   const [creativityLevel, setCreativityLevel] = useState<number>(30); // 0 to 100
   const [lighting, setLighting] = useState<LightingIntensity>('dramatic');
   const [colorGrading, setColorGrading] = useState<ColorGradingStyle>('teal_orange');
+  const [customPrompt, setCustomPrompt] = useState<string>("");
+  const [showPromptSuggestions, setShowPromptSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
   
   // Animation State
   const [isAnimating, setIsAnimating] = useState(false);
   const [videoResult, setVideoResult] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'compare'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'video' | 'compare' | 'edit'>('image');
 
   // Chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -93,7 +104,6 @@ function App() {
 
   const handleImageSelected = useCallback((base64: string | string[]) => {
     if (Array.isArray(base64)) {
-       // Only enable batch in portrait mode for now
        if (appMode === 'portrait') {
          const newItems: BatchItem[] = base64.map((b, i) => ({
            id: `batch-${Date.now()}-${i}`,
@@ -123,12 +133,66 @@ function App() {
     }
   }, []);
 
-  const constructPrompt = () => {
-    let finalPrompt = DEFAULT_PROMPT;
-    if (selectedStyleId) {
-      const style = PROMPT_SUGGESTIONS.find(s => s.id === selectedStyleId);
-      if (style) finalPrompt = style.prompt; 
+  const handleCameraCapture = (imageSrc: string) => {
+    if (cameraTarget === 'base') {
+      handleImageSelected(imageSrc);
+    } else {
+      handleFaceImageSelected(imageSrc);
     }
+    setIsCameraOpen(false);
+  };
+
+  const handleHistorySelect = (item: HistoryItem) => {
+    setResultImage(item.imageUrl);
+    setAppMode(item.mode || 'portrait');
+    if (item.skinTexture !== undefined) setSkinTexture(item.skinTexture);
+    if (item.faceDetail !== undefined) setFaceDetail(item.faceDetail);
+    if (item.lighting) setLighting(item.lighting);
+    if (item.colorGrading) setColorGrading(item.colorGrading);
+    setActiveTab('image');
+  };
+
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setCustomPrompt(val);
+
+    const words = val.split(' ');
+    const lastWord = words[words.length - 1].toLowerCase();
+
+    if (lastWord.length > 1) {
+       const matches = CINEMATIC_KEYWORDS.filter(k => k.toLowerCase().startsWith(lastWord));
+       if (matches.length > 0) {
+          setFilteredSuggestions(matches);
+          setShowPromptSuggestions(true);
+       } else {
+          setShowPromptSuggestions(false);
+       }
+    } else {
+       setShowPromptSuggestions(false);
+    }
+  };
+
+  const acceptSuggestion = (suggestion: string) => {
+    const words = customPrompt.split(' ');
+    words.pop(); // Remove partial word
+    const newText = words.join(' ') + (words.length > 0 ? ' ' : '') + suggestion + ', ';
+    setCustomPrompt(newText);
+    setShowPromptSuggestions(false);
+  };
+
+  const constructPrompt = () => {
+    // If user typed a custom prompt, prioritized it, but we can still append style modifiers if desired.
+    // However, usually "Advanced Prompt" implies full control or addition.
+    // Let's prepend custom prompt to the generated one for maximum effect, or simply use it as base.
+    
+    let base = customPrompt ? customPrompt : DEFAULT_PROMPT;
+
+    if (selectedStyleId && !customPrompt) {
+      const style = PROMPT_SUGGESTIONS.find(s => s.id === selectedStyleId);
+      if (style) base = style.prompt; 
+    }
+
+    let finalPrompt = base;
 
     if (skinTexture) finalPrompt += ", high fidelity texture, realistic pores";
     if (faceDetail > 60) finalPrompt += ", hyper-detailed facial features";
@@ -147,25 +211,23 @@ function App() {
   const handleGenerate = async () => {
     if (!selectedImage) return;
 
-    // Handle Face Swap Mode
     if (appMode === 'faceswap') {
       if (!swapFaceImage) return;
       setStatus({ isLoading: true, error: null });
       setResultImage(null);
       try {
-        const prompt = t.swapPrompt + QUALITY_MODIFIERS[quality];
+        const prompt = (customPrompt || t.swapPrompt) + QUALITY_MODIFIERS[quality];
         const img = await generateFaceSwap(selectedImage, swapFaceImage, prompt);
         setResultImage(img);
         await addToHistory(img, prompt, aspectRatio);
       } catch (error: any) {
-        setStatus({ isLoading: false, error: error.message || t.errorGeneric });
+        setStatus({ isLoading: false, error: error.message });
       } finally {
         setStatus(prev => ({ ...prev, isLoading: false }));
       }
       return;
     }
 
-    // Handle Portrait Mode (Batch or Single)
     if (batchQueue.length > 0) { handleBatchGenerate(); return; }
 
     setStatus({ isLoading: true, error: null });
@@ -176,7 +238,7 @@ function App() {
       setResultImage(img);
       await addToHistory(img, finalPrompt, aspectRatio);
     } catch (error: any) {
-      setStatus({ isLoading: false, error: error.message || t.errorGeneric });
+      setStatus({ isLoading: false, error: error.message });
     } finally {
       setStatus(prev => ({ ...prev, isLoading: false }));
     }
@@ -232,26 +294,16 @@ function App() {
     
     setStatus({ isLoading: true, error: null });
     try {
-       // Re-construct logic based on mode
        let img;
        if (appMode === 'faceswap' && selectedImage && swapFaceImage) {
-         // In Face Swap, chat is tricky because we have two inputs. 
-         // Strategy: Use the resultImage as the new base? Or re-run prompt modification?
-         // For simplicity, let's treat it as editing the LAST result image.
-         // Note: generateEditedImage accepts one image.
          const editPrompt = `${t.swapPrompt}, ${text}`;
-         // We might need to send the original inputs again with modified prompt or just edit the result
-         // Let's edit the result for now to keep it consistent with "refining" the output.
          img = await generateEditedImage(resultImage, editPrompt, aspectRatio);
        } else {
          const currentPrompt = constructPrompt();
          const editPrompt = `${currentPrompt}, ${text}`;
          img = await generateEditedImage(selectedImage!, editPrompt, aspectRatio);
        }
-       
        setResultImage(img);
-       // Add to history not implemented for chat flow to avoid clutter, but could be.
-
        const modelMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: t.modelGreeting, timestamp: Date.now() };
        setChatMessages(prev => [...prev, modelMsg]);
     } catch (error: any) {
@@ -261,10 +313,24 @@ function App() {
     }
   };
 
+  const getErrorMessage = (errorKey: string | null) => {
+    if (!errorKey) return t.errorGeneric;
+    return t[errorKey] || errorKey || t.errorGeneric;
+  };
+
   return (
     <div dir={language === 'fa' ? 'rtl' : 'ltr'} className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden relative selection:bg-studio-neon/30">
       
       <LivingBackground />
+
+      {isCameraOpen && (
+        <CameraCapture 
+           onCapture={handleCameraCapture} 
+           onCancel={() => setIsCameraOpen(false)}
+           labelCapture={t.takePhoto}
+           labelCancel={t.cancel}
+        />
+      )}
 
       {isCropping && imageToCrop && (
         <ImageCropper
@@ -277,6 +343,15 @@ function App() {
           }}
           onCancel={() => { setIsCropping(false); setImageToCrop(null); }}
           confirmLabel={t.applyCrop} cancelLabel={t.cancelCrop} instructions={t.cropInstructions}
+        />
+      )}
+
+      {isGalleryOpen && (
+        <HistoryGallery 
+           onSelect={handleHistorySelect} 
+           onClose={() => setIsGalleryOpen(false)} 
+           title={t.galleryTitle}
+           emptyMessage={t.galleryEmpty}
         />
       )}
 
@@ -296,6 +371,15 @@ function App() {
            </div>
 
            <div className="flex items-center gap-3">
+              <button 
+                 onClick={() => setIsGalleryOpen(true)}
+                 className="p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/5 text-gray-400 hover:text-white hover:border-studio-neon/50 transition-all"
+                 title={t.history}
+              >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+              </button>
               <div className="flex items-center bg-black/30 backdrop-blur-md rounded-xl p-1 border border-white/5">
                  <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === 'en' ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}>EN</button>
                  <button onClick={() => setLanguage('fa')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === 'fa' ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}>FA</button>
@@ -312,14 +396,14 @@ function App() {
             {/* MODE SWITCHER */}
             <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-glass">
                 <button 
-                  onClick={() => { setAppMode('portrait'); setResultImage(null); }}
+                  onClick={() => { setAppMode('portrait'); setResultImage(null); setStatus({ isLoading: false, error: null }); }}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${appMode === 'portrait' ? 'bg-studio-neon/20 text-studio-neon border border-studio-neon/50 shadow-[0_0_20px_rgba(0,240,255,0.2)]' : 'text-gray-500 hover:text-white'}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                   {t.modePortrait}
                 </button>
                 <button 
-                  onClick={() => { setAppMode('faceswap'); setResultImage(null); }}
+                  onClick={() => { setAppMode('faceswap'); setResultImage(null); setStatus({ isLoading: false, error: null }); }}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${appMode === 'faceswap' ? 'bg-studio-purple/20 text-studio-purple border border-studio-purple/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'text-gray-500 hover:text-white'}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
@@ -340,6 +424,7 @@ function App() {
                     selectedImage={selectedImage}
                     queue={batchQueue}
                     title={appMode === 'faceswap' ? t.labelTarget : undefined}
+                    onOpenCamera={() => { setCameraTarget('base'); setIsCameraOpen(true); }}
                   />
 
                   {/* FACE SWAP: SECOND UPLOAD */}
@@ -357,6 +442,7 @@ function App() {
                          selectedImage={swapFaceImage}
                          title={t.labelSource}
                          className="h-48 md:h-56"
+                         onOpenCamera={() => { setCameraTarget('face'); setIsCameraOpen(true); }}
                        />
                     </div>
                   )}
@@ -366,7 +452,6 @@ function App() {
                     <div className="space-y-2">
                        <p className="text-[10px] uppercase font-bold text-gray-500">{t.aspectRatio}</p>
                        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                          {/* Auto Option */}
                           <button
                               onClick={() => setAspectRatio('AUTO')}
                               className={`
@@ -510,6 +595,36 @@ function App() {
                       </div>
                    </div>
                 </div>
+
+                {/* Advanced Prompt Section */}
+                <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up animation-delay-400">
+                   <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
+                     <svg className="w-4 h-4 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
+                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionAdvanced}</h3>
+                   </div>
+                   <div className="p-4 relative">
+                      <textarea
+                        value={customPrompt}
+                        onChange={handlePromptChange}
+                        placeholder={t.customPromptPlaceholder}
+                        className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:border-studio-neon focus:ring-1 focus:ring-studio-neon outline-none resize-none"
+                      />
+                      {showPromptSuggestions && filteredSuggestions.length > 0 && (
+                        <div className="absolute bottom-full left-4 bg-gray-900 border border-white/10 rounded-xl shadow-xl p-2 max-h-40 overflow-y-auto mb-2 z-50 min-w-[200px]">
+                           <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-2">{t.suggestions}</p>
+                           {filteredSuggestions.map((s, i) => (
+                             <div 
+                               key={i} 
+                               onClick={() => acceptSuggestion(s)}
+                               className="px-2 py-1.5 hover:bg-white/10 rounded-lg cursor-pointer text-xs text-studio-neon"
+                             >
+                               {s}
+                             </div>
+                           ))}
+                        </div>
+                      )}
+                   </div>
+                </div>
               </>
             )}
 
@@ -536,6 +651,7 @@ function App() {
                <button onClick={() => setActiveTab('image')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'image' ? 'bg-white/10 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}>{t.viewImage}</button>
                <button onClick={() => setActiveTab('compare')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'compare' ? 'bg-studio-neon/20 text-studio-neon shadow' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewCompare}</button>
                <button onClick={() => setActiveTab('video')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'video' ? 'bg-studio-purple/20 text-studio-purple shadow' : 'text-gray-500 hover:text-gray-300'}`}>{t.viewVideo}</button>
+               <button onClick={() => setActiveTab('edit')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'edit' ? 'bg-studio-gold/20 text-studio-gold shadow' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewEdit}</button>
             </div>
 
             {/* 2. MAIN VIEWPORT */}
@@ -559,8 +675,27 @@ function App() {
                            <p className="text-studio-neon text-xs mt-2 font-mono uppercase">{appMode === 'faceswap' ? t.processingSwap : t[LOADING_MESSAGES[loadingMessageIndex]]}</p>
                         </div>
                      </div>
+                  ) : status.error ? (
+                    <div className="flex flex-col items-center justify-center max-w-md text-center p-8 bg-black/40 border border-red-500/30 rounded-2xl backdrop-blur-md animate-zoom-in">
+                        <div className="w-16 h-16 mb-4 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-red-500">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">{t.errorTitle}</h3>
+                        <p className="text-red-200/80 text-sm leading-relaxed mb-6">{getErrorMessage(status.error)}</p>
+                        <Button variant="secondary" onClick={() => setStatus({isLoading: false, error: null})}>
+                            {t.tryAgain}
+                        </Button>
+                    </div>
                   ) : activeTab === 'compare' && selectedImage && resultImage ? (
                      <ComparisonView original={selectedImage} result={resultImage} />
+                  ) : activeTab === 'edit' && resultImage ? (
+                     <ImageEditor 
+                        imageSrc={resultImage} 
+                        onSave={(newImg) => { setResultImage(newImg); setActiveTab('image'); }} 
+                        language={language}
+                     />
                   ) : activeTab === 'image' && resultImage ? (
                     <img src={resultImage} className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/5 cursor-zoom-in transition-transform duration-500 hover:scale-[1.02]" />
                   ) : activeTab === 'video' && videoResult ? (
@@ -577,7 +712,7 @@ function App() {
             </div>
 
             {/* 3. ACTION BAR (Download & Share) */}
-            {resultImage && (
+            {resultImage && !status.error && activeTab !== 'edit' && (
               <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 flex items-center justify-between animate-fade-in-up">
                  <div className="flex gap-2">
                     <Button 
@@ -588,9 +723,6 @@ function App() {
                        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                        {activeTab === 'video' ? t.downloadVideo : t.download}
                     </Button>
-                    <button className="h-12 w-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-white">
-                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                    </button>
                  </div>
                  {activeTab === 'image' && (
                    <Button variant="secondary" onClick={handleAnimate} className="h-12 px-4 text-[10px] hidden sm:flex">
@@ -602,7 +734,7 @@ function App() {
             )}
 
             {/* 4. CHAT */}
-            {resultImage && activeTab === 'image' && (
+            {resultImage && activeTab === 'image' && !status.error && (
               <div className="h-[200px] border border-white/10 rounded-2xl bg-black/40 backdrop-blur-md overflow-hidden">
                  <ChatInterface 
                    messages={chatMessages} 

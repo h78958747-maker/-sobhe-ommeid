@@ -115,11 +115,8 @@ export const generateEditedImage = async (
     return handleResponse(response);
 
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    if (error.message && (error.message.includes("Model Refusal") || error.message.includes("Finish Reason") || error.message.includes("safety"))) {
-        throw error;
-    }
-    throw new Error(error.message || "Failed to generate image.");
+    handleError(error);
+    return ""; // Unreachable due to throw, but satisfies TS
   }
 };
 
@@ -173,8 +170,8 @@ export const generateFaceSwap = async (
     return handleResponse(response);
 
   } catch (error: any) {
-    console.error("Gemini Face Swap Error:", error);
-    throw new Error(error.message || "Failed to swap faces.");
+    handleError(error);
+    return ""; // Unreachable
   }
 };
 
@@ -182,21 +179,22 @@ const handleResponse = (response: any): string => {
     const candidate = response.candidates?.[0];
 
     if (!candidate) {
-       throw new Error("No candidates returned from the model. The service might be temporarily unavailable.");
+       throw new Error("errorServer");
     }
 
     if (candidate.finishReason === "SAFETY") {
-      throw new Error("Generation was blocked due to safety settings. The model detected potential policy violations.");
+      throw new Error("errorSafety");
     }
 
     if (candidate.finishReason === "IMAGE_OTHER" || candidate.finishReason === "OTHER") {
-         throw new Error("The AI model refused to process this request (Refusal). Please modify your prompt or images.");
+         throw new Error("errorRefusal");
     }
 
     const parts = candidate.content?.parts;
     
     if (!parts || parts.length === 0) {
-       throw new Error(`The model returned no content. Finish reason: ${candidate.finishReason || 'Unknown'}`);
+       // If finishReason exists but no parts, mapped to refusal or server error based on context
+       throw new Error("errorUnknown");
     }
 
     // 1. Prioritize finding an image in the parts
@@ -206,12 +204,40 @@ const handleResponse = (response: any): string => {
       }
     }
 
-    // 2. If no image found, check for text
+    // 2. If no image found, check for text (usually refusal explanation)
     for (const part of parts) {
       if (part.text) {
-        throw new Error(`Model Refusal: ${part.text}`);
+        throw new Error("errorRefusal");
       }
     }
 
-    throw new Error("No image data found in the response.");
+    throw new Error("errorUnknown");
 };
+
+const handleError = (error: any) => {
+    console.error("Gemini Service Error:", error);
+    
+    const msg = error.message || "";
+
+    // Check for specific error keys already thrown by handleResponse
+    if (msg.startsWith("error")) {
+        throw error; // Re-throw localized keys
+    }
+
+    // Check for Network/API errors
+    if (msg.includes("429") || msg.includes("Quota") || msg.includes("quota")) {
+        throw new Error("errorQuota");
+    }
+    if (msg.includes("503") || msg.includes("500") || msg.includes("Overloaded")) {
+        throw new Error("errorServer");
+    }
+    if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed to fetch")) {
+        throw new Error("errorNetwork");
+    }
+    if (msg.includes("Safety") || msg.includes("blocked")) {
+        throw new Error("errorSafety");
+    }
+
+    // Fallback
+    throw new Error("errorUnknown");
+}

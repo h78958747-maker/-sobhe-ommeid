@@ -66,6 +66,14 @@ export interface BatchItem {
   result?: string;
 }
 
+export interface ImageAdjustments {
+  brightness: number; // 0-200, default 100
+  contrast: number;   // 0-200, default 100
+  saturation: number; // 0-200, default 100
+  sepia: number;      // 0-100, default 0
+  blur: number;       // 0-10, default 0
+}
+
 declare global {
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;

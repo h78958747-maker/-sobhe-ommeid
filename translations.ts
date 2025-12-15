@@ -53,6 +53,7 @@ export const translations: Record<Language, Record<string, string>> = {
     viewImage: "View Image",
     viewVideo: "View Animation",
     viewCompare: "Slider Compare",
+    viewEdit: "Post-Processing",
     downloadVideo: "Download Video",
     ratioAuto: "Auto",
     ratioAutoTooltip: "Use Original Aspect Ratio",
@@ -66,6 +67,8 @@ export const translations: Record<Language, Record<string, string>> = {
     sectionComposition: "Composition",
     sectionStyle: "Style & Mood",
     sectionTuning: "Fine Tuning",
+    sectionAdvanced: "Advanced Prompt",
+    customPromptPlaceholder: "Type your custom prompt here... (e.g., 'A futuristic cyberpunk city...')",
     // Lighting Options
     lightSoft: "Soft",
     lightCinematic: "Cinematic",
@@ -83,6 +86,21 @@ export const translations: Record<Language, Record<string, string>> = {
     cancelCrop: "Cancel",
     cropInstructions: "Drag to resize or move the crop box.",
     cropFree: "Free",
+    // Camera
+    openCamera: "Use Camera",
+    takePhoto: "Capture",
+    cameraError: "Could not access camera.",
+    // Gallery
+    galleryTitle: "Creation History",
+    galleryEmpty: "No history items yet.",
+    // Editor
+    editBrightness: "Brightness",
+    editContrast: "Contrast",
+    editSaturation: "Saturation",
+    editSepia: "Sepia",
+    editBlur: "Blur",
+    applyEdits: "Apply Edits",
+    resetEdits: "Reset",
     // Styles
     styleNoir: "Film Noir",
     styleCyberpunk: "Cyberpunk",
@@ -120,7 +138,16 @@ export const translations: Record<Language, Record<string, string>> = {
     // API Key
     apiKeyTitle: "Studio Access",
     apiKeyDesc: "To access the cinematic AI engine, please connect your Google API key.",
-    connectApi: "Connect Intelligence"
+    connectApi: "Connect Intelligence",
+    // Error Handling
+    errorTitle: "Generation Failed",
+    tryAgain: "Try Again",
+    errorSafety: "Generation blocked by safety filters. Please try a different image or prompt.",
+    errorQuota: "Service quota exceeded. Please wait a moment and try again.",
+    errorServer: "AI Service is temporarily unavailable. Please try again later.",
+    errorNetwork: "Network connection failed. Please check your internet.",
+    errorRefusal: "The model refused the request. Please modify your input.",
+    errorUnknown: "An unexpected error occurred. Please try again."
   },
   fa: {
     instituteName: "موسسه صبح امید",
@@ -172,6 +199,7 @@ export const translations: Record<Language, Record<string, string>> = {
     viewImage: "مشاهده تصویر",
     viewVideo: "مشاهده انیمیشن",
     viewCompare: "مقایسه کشویی",
+    viewEdit: "ویرایش پیشرفته",
     downloadVideo: "دانلود ویدیو",
     ratioAuto: "خودکار",
     ratioAutoTooltip: "استفاده از نسبت ابعاد اصلی تصویر",
@@ -185,6 +213,8 @@ export const translations: Record<Language, Record<string, string>> = {
     sectionComposition: "ترکیب‌بندی",
     sectionStyle: "استایل و حال‌وهوا",
     sectionTuning: "تنظیمات دقیق",
+    sectionAdvanced: "پرامپت پیشرفته",
+    customPromptPlaceholder: "پرامپت سفارشی خود را بنویسید... (مثلاً: 'شهری سایبرپانکی در آینده...')",
     // Lighting Options
     lightSoft: "نرم",
     lightCinematic: "سینمایی",
@@ -202,6 +232,21 @@ export const translations: Record<Language, Record<string, string>> = {
     cancelCrop: "لغو",
     cropInstructions: "برای تغییر اندازه یا جابجایی کادر برش، بکشید.",
     cropFree: "آزاد",
+    // Camera
+    openCamera: "استفاده از دوربین",
+    takePhoto: "عکسبرداری",
+    cameraError: "عدم دسترسی به دوربین.",
+    // Gallery
+    galleryTitle: "تاریخچه آثار",
+    galleryEmpty: "هنوز موردی در تاریخچه نیست.",
+    // Editor
+    editBrightness: "روشنایی",
+    editContrast: "کنتراست",
+    editSaturation: "اشباع رنگ",
+    editSepia: "سپیا (قدیمی)",
+    editBlur: "تاری",
+    applyEdits: "اعمال تغییرات",
+    resetEdits: "بازنشانی",
     // Styles
     styleNoir: "فیلم نوار (سیاه و سفید)",
     styleCyberpunk: "سایبرپانک",
@@ -239,6 +284,15 @@ export const translations: Record<Language, Record<string, string>> = {
     // API Key
     apiKeyTitle: "دسترسی استودیو",
     apiKeyDesc: "برای دسترسی به موتور هوش مصنوعی سینمایی، لطفاً کلید API گوگل خود را متصل کنید.",
-    connectApi: "اتصال به هوش مصنوعی"
+    connectApi: "اتصال به هوش مصنوعی",
+    // Error Handling
+    errorTitle: "خطا در تولید",
+    tryAgain: "تلاش مجدد",
+    errorSafety: "محتوای تولید شده توسط فیلترهای ایمنی مسدود شد. لطفاً تصویر یا پرامپت متفاوتی امتحان کنید.",
+    errorQuota: "سهمیه سرویس تمام شده است. لطفاً لحظاتی صبر کنید.",
+    errorServer: "سرویس هوش مصنوعی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.",
+    errorNetwork: "عدم ارتباط با شبکه. لطفاً اینترنت خود را بررسی کنید.",
+    errorRefusal: "مدل هوش مصنوعی درخواست را رد کرد. لطفاً ورودی را تغییر دهید.",
+    errorUnknown: "یک خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید."
   }
 };

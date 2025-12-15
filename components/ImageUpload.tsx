@@ -10,6 +10,7 @@ interface ImageUploadProps {
   queue?: BatchItem[];
   title?: string;
   className?: string;
+  onOpenCamera?: () => void;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({ 
@@ -17,7 +18,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   selectedImage, 
   queue = [],
   title,
-  className = ""
+  className = "",
+  onOpenCamera
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -66,41 +68,57 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
       
       {!selectedImage ? (
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className={`
-            relative h-64 md:h-80 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 ease-cinematic transform-style-3d
-            border border-dashed backdrop-blur-md overflow-hidden
-            ${dragActive 
-              ? 'border-cyan-400 bg-cyan-900/20 scale-[1.02] shadow-neon-blue' 
-              : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10'}
-          `}
-          onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-          style={{ transform: isHovered ? 'rotateX(2deg) translateY(-5px)' : 'rotateX(0deg)' }}
-        >
-          {/* Animated Noise Texture */}
-          <div className="absolute inset-0 bg-noise opacity-[0.05] pointer-events-none"></div>
-          
-          {/* Floating Particles */}
-          <div className={`absolute top-10 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? 'translate-x-4' : ''}`}></div>
-          <div className={`absolute bottom-10 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? '-translate-x-4' : ''}`}></div>
+        <div className="relative">
+            <div 
+            onClick={() => fileInputRef.current?.click()}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`
+                relative h-64 md:h-80 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 ease-cinematic transform-style-3d
+                border border-dashed backdrop-blur-md overflow-hidden
+                ${dragActive 
+                ? 'border-cyan-400 bg-cyan-900/20 scale-[1.02] shadow-neon-blue' 
+                : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10'}
+            `}
+            onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+            style={{ transform: isHovered ? 'rotateX(2deg) translateY(-5px)' : 'rotateX(0deg)' }}
+            >
+            {/* Animated Noise Texture */}
+            <div className="absolute inset-0 bg-noise opacity-[0.05] pointer-events-none"></div>
+            
+            {/* Floating Particles */}
+            <div className={`absolute top-10 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? 'translate-x-4' : ''}`}></div>
+            <div className={`absolute bottom-10 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? '-translate-x-4' : ''}`}></div>
 
-          {/* Icon */}
-          <div className={`
-            relative z-10 w-20 h-20 mb-6 rounded-full flex items-center justify-center transition-all duration-500
-            ${isHovered ? 'bg-white text-black scale-110 shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-white/10 text-white/50'}
-          `}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-          </div>
-          
-          <div className="relative z-10 text-center space-y-2">
-            <p className="text-lg font-bold tracking-tight text-white group-hover/container:tracking-wide transition-all">{title || "Upload Reference"}</p>
-            <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
-          </div>
+            {/* Icon */}
+            <div className={`
+                relative z-10 w-20 h-20 mb-6 rounded-full flex items-center justify-center transition-all duration-500
+                ${isHovered ? 'bg-white text-black scale-110 shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-white/10 text-white/50'}
+            `}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+            </div>
+            
+            <div className="relative z-10 text-center space-y-2">
+                <p className="text-lg font-bold tracking-tight text-white group-hover/container:tracking-wide transition-all">{title || "Upload Reference"}</p>
+                <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
+            </div>
+            </div>
+
+            {/* Camera Button Overlay */}
+            {onOpenCamera && (
+               <button 
+                 onClick={(e) => { e.stopPropagation(); onOpenCamera(); }}
+                 className="absolute bottom-4 right-4 z-20 bg-black/60 hover:bg-studio-neon hover:text-black border border-white/10 text-white p-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg group-hover/container:scale-100 scale-90"
+                 title="Open Camera"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                 </svg>
+               </button>
+            )}
         </div>
       ) : (
         <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 bg-black/40 animate-scale-up group h-[350px]">

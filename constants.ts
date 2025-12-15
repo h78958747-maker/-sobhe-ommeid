@@ -71,6 +71,16 @@ export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
   },
 ];
 
+export const CINEMATIC_KEYWORDS = [
+  "anamorphic lens", "bokeh", "depth of field", "volumetric lighting", "golden hour", "blue hour",
+  "rim lighting", "chiaroscuro", "high key", "low key", "color grading", "technicolor",
+  "film grain", "lens flare", "motion blur", "wide angle", "telephoto", "macro",
+  "iso 100", "f/1.8", "shutter speed", "dynamic range", "softbox", "rembrandt lighting",
+  "butterfly lighting", "split lighting", "cyberpunk", "vaporwave", "noir", "sepia",
+  "monochrome", "vibrant", "muted tones", "pastel", "neon", "glowing", "ethereal",
+  "gritty", "texture", "hyper-realistic", "surreal", "minimalist", "maximalist"
+];
+
 export const LOADING_MESSAGES = [
   "loadAnalyzing",
   "loadEnhancing",
