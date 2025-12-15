@@ -70,12 +70,38 @@ function App() {
   const [batchQueue, setBatchQueue] = useState<BatchItem[]>([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
+  // API Key State
+  const [hasApiKey, setHasApiKey] = useState(false);
+
   // Updated Logo URL
   const LOGO_URL = "https://sobheommid.com/_nuxt/logo.BtixDU2P.svg";
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
+    
+    // Check API Key Availability
+    const checkKey = async () => {
+      // If manually set in env (dev), allow it
+      if (process.env.API_KEY) {
+        setHasApiKey(true);
+        return;
+      }
+      
+      // Otherwise check platform handler
+      if (window.aistudio && window.aistudio.hasSelectedApiKey) {
+        const has = await window.aistudio.hasSelectedApiKey();
+        setHasApiKey(has);
+      }
+    };
+    checkKey();
   }, []);
+
+  const handleConnectApi = async () => {
+    if (window.aistudio && window.aistudio.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      setHasApiKey(true);
+    }
+  };
 
   useEffect(() => {
     let interval: any;
@@ -181,10 +207,6 @@ function App() {
   };
 
   const constructPrompt = () => {
-    // If user typed a custom prompt, prioritized it, but we can still append style modifiers if desired.
-    // However, usually "Advanced Prompt" implies full control or addition.
-    // Let's prepend custom prompt to the generated one for maximum effect, or simply use it as base.
-    
     let base = customPrompt ? customPrompt : DEFAULT_PROMPT;
 
     if (selectedStyleId && !customPrompt) {
@@ -323,6 +345,27 @@ function App() {
       
       <LivingBackground />
 
+      {/* API Key Connection Overlay */}
+      {!hasApiKey && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+           <div className="w-20 h-20 mb-6 rounded-full bg-studio-gold/10 flex items-center justify-center border border-studio-gold/30 shadow-[0_0_40px_rgba(255,215,0,0.2)]">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-studio-gold">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+              </svg>
+           </div>
+           <h2 className="text-3xl font-black text-white mb-2 tracking-tighter">{t.apiKeyTitle}</h2>
+           <p className="text-gray-400 max-w-md mb-8 leading-relaxed">{t.apiKeyDesc}</p>
+           <Button variant="gold" onClick={handleConnectApi} className="h-14 px-8 text-sm">
+             {t.connectApi}
+           </Button>
+           <div className="mt-8 text-[10px] text-gray-600">
+              <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="hover:text-white underline decoration-gray-600 underline-offset-4 transition-colors">
+                Billing Information
+              </a>
+           </div>
+        </div>
+      )}
+
       {isCameraOpen && (
         <CameraCapture 
            onCapture={handleCameraCapture} 
@@ -356,7 +399,7 @@ function App() {
       )}
 
       {/* Main Container */}
-      <div className="relative z-10 max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6">
+      <div className={`relative z-10 max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6 transition-opacity duration-500 ${!hasApiKey ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         
         {/* HEADER */}
         <header className="flex items-center justify-between animate-stagger-1 pb-4 border-b border-white/5">
