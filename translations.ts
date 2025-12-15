@@ -141,7 +141,8 @@ export const translations: Record<Language, Record<string, string>> = {
     connectApi: "Start Using for Free",
     getApiKey: "Get Free API Key",
     enterKeyPlaceholder: "Paste your API Key (AIza...)",
-    logout: "Log Out",
+    logout: "Clear API Key",
+    statusConnected: "API Connected",
     // Error Handling
     errorTitle: "Generation Failed",
     tryAgain: "Try Again",
@@ -291,7 +292,8 @@ export const translations: Record<Language, Record<string, string>> = {
     connectApi: "شروع استفاده رایگان",
     getApiKey: "دریافت کلید رایگان (Free)",
     enterKeyPlaceholder: "کلید API خود را اینجا وارد کنید (با AIza شروع می‌شود)",
-    logout: "خروج از حساب",
+    logout: "حذف کلید API",
+    statusConnected: "API متصل است",
     // Error Handling
     errorTitle: "خطا در تولید",
     tryAgain: "تلاش مجدد",

@@ -73,6 +73,7 @@ function App() {
   // API Key State
   const [hasApiKey, setHasApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyError, setApiKeyError] = useState(false);
 
   // Updated Logo URL
   const LOGO_URL = "https://sobheommid.com/_nuxt/logo.BtixDU2P.svg";
@@ -105,9 +106,13 @@ function App() {
   }, []);
 
   const handleManualKeySubmit = () => {
-    if (apiKeyInput.trim().length > 15) { // Basic length check
-       setStoredApiKey(apiKeyInput.trim());
+    const trimmed = apiKeyInput.trim();
+    if (trimmed.length > 30 && trimmed.startsWith('AIza')) {
+       setStoredApiKey(trimmed);
        setHasApiKey(true);
+       setApiKeyError(false);
+    } else {
+       setApiKeyError(true);
     }
   };
 
@@ -115,6 +120,7 @@ function App() {
       clearStoredApiKey();
       setHasApiKey(false);
       setApiKeyInput("");
+      setApiKeyError(false);
   };
 
   useEffect(() => {
@@ -370,13 +376,16 @@ function App() {
            <p className="text-gray-400 max-w-lg mb-8 leading-relaxed text-sm md:text-base">{t.apiKeyDesc}</p>
            
            <div className="w-full max-w-md space-y-4">
-              <input 
-                 type="password" 
-                 value={apiKeyInput}
-                 onChange={(e) => setApiKeyInput(e.target.value)}
-                 placeholder={t.enterKeyPlaceholder}
-                 className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-center text-white focus:border-studio-gold focus:ring-1 focus:ring-studio-gold outline-none transition-all placeholder:text-gray-600 font-mono text-sm"
-              />
+              <div className="relative">
+                <input 
+                   type="password" 
+                   value={apiKeyInput}
+                   onChange={(e) => { setApiKeyInput(e.target.value); setApiKeyError(false); }}
+                   placeholder={t.enterKeyPlaceholder}
+                   className={`w-full h-14 bg-white/5 border rounded-xl px-4 text-center text-white outline-none transition-all placeholder:text-gray-600 font-mono text-sm ${apiKeyError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-studio-gold focus:ring-1 focus:ring-studio-gold'}`}
+                />
+                {apiKeyError && <p className="text-red-500 text-xs mt-1 absolute -bottom-5 left-0 w-full">Invalid API Key format (must start with AIza...)</p>}
+              </div>
               
               <Button variant="gold" onClick={handleManualKeySubmit} className="w-full h-14 text-sm font-bold shadow-studio-gold" disabled={apiKeyInput.length < 10}>
                 {t.connectApi}
@@ -448,6 +457,14 @@ function App() {
            </div>
 
            <div className="flex items-center gap-3">
+               {/* Status Indicator */}
+               {hasApiKey && (
+                  <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-green-500/10 rounded-xl border border-green-500/20 mr-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+                    <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest">{t.statusConnected}</span>
+                  </div>
+               )}
+
                <button 
                  onClick={handleLogout}
                  className="p-2 bg-red-500/10 backdrop-blur-md rounded-xl border border-red-500/20 text-red-400 hover:text-white hover:bg-red-500/30 transition-all"
