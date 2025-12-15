@@ -135,14 +135,6 @@ export const translations: Record<Language, Record<string, string>> = {
     swapFaces: "Swap Faces",
     processingSwap: "Swapping Faces...",
     swapPrompt: "Swap the face from the second image onto the body in the first image. Crucial: Automatically adjust skin tone, color temperature, and grain to perfectly match the target body. Maintain the subtle facial expressions and micro-details of the source face. Ensure seamless blending with no visible edges.",
-    // API Key / Auth
-    apiKeyTitle: "Log in with Google",
-    apiKeyDesc: "To use this app for free, please enter your Google Gemini API Key. Each user has their own free quota.",
-    connectApi: "Start Using for Free",
-    getApiKey: "Get Free API Key",
-    enterKeyPlaceholder: "Paste your API Key (AIza...)",
-    logout: "Clear API Key",
-    statusConnected: "API Connected",
     // Error Handling
     errorTitle: "Generation Failed",
     tryAgain: "Try Again",
@@ -286,14 +278,6 @@ export const translations: Record<Language, Record<string, string>> = {
     swapFaces: "جابجایی چهره‌ها",
     processingSwap: "در حال جابجایی چهره...",
     swapPrompt: "چهره تصویر دوم را روی بدن تصویر اول قرار بده. حیاتی: برای ترکیب طبیعی، رنگ پوست، دما و بافت را دقیقاً با بدن تصویر اول هماهنگ کن. حالات ظریف چهره و ریز-جزئیات صورت مرجع را حفظ کن. ترکیب باید کاملاً یکپارچه و بدون مرز باشد.",
-    // API Key / Auth
-    apiKeyTitle: "ورود با حساب گوگل",
-    apiKeyDesc: "برای استفاده رایگان از این برنامه، باید کلید دسترسی (API Key) خود را وارد کنید. هر کاربر سهمیه رایگان و اختصاصی خود را دارد.",
-    connectApi: "شروع استفاده رایگان",
-    getApiKey: "دریافت کلید رایگان (Free)",
-    enterKeyPlaceholder: "کلید API خود را اینجا وارد کنید (با AIza شروع می‌شود)",
-    logout: "حذف کلید API",
-    statusConnected: "API متصل است",
     // Error Handling
     errorTitle: "خطا در تولید",
     tryAgain: "تلاش مجدد",

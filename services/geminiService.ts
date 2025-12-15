@@ -4,37 +4,13 @@ import { GoogleGenAI } from "@google/genai";
 import { MODEL_NAME } from "../constants";
 import { AspectRatio } from "../types";
 
-const LOCAL_STORAGE_KEY = "GEMINI_API_KEY";
-
-export const getStoredApiKey = () => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem(LOCAL_STORAGE_KEY);
-    }
-    return null;
-};
-
-export const setStoredApiKey = (key: string) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_KEY, key);
-    }
-};
-
-export const clearStoredApiKey = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-    }
-};
-
 const getGenAI = () => {
-  // 1. Check Local Storage (User provided key)
-  const storedKey = getStoredApiKey();
-  
-  // 2. Check Environment Variable (Dev/Fallback)
-  const envKey = process.env.API_KEY;
-
-  const apiKey = storedKey || envKey;
+  // Directly use the environment variable provided by the deployment/developer
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
+    // If the developer hasn't set the key in the environment, this will throw
+    console.error("API_KEY_MISSING: Please ensure process.env.API_KEY is configured.");
     throw new Error("API_KEY_MISSING"); 
   }
   return new GoogleGenAI({ apiKey });
@@ -262,6 +238,7 @@ const handleError = (error: any) => {
         throw new Error("errorSafety");
     }
     if (msg.includes("403") || msg.includes("401") || msg.includes("key") || msg.includes("Key")) {
+        // Even if auth is removed from UI, key issues can still happen on backend
         throw new Error("errorAuth");
     }
 
