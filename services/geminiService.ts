@@ -4,14 +4,38 @@ import { GoogleGenAI } from "@google/genai";
 import { MODEL_NAME } from "../constants";
 import { AspectRatio } from "../types";
 
-let genAI: GoogleGenAI | null = null;
+const LOCAL_STORAGE_KEY = "GEMINI_API_KEY";
+
+export const getStoredApiKey = () => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem(LOCAL_STORAGE_KEY);
+    }
+    return null;
+};
+
+export const setStoredApiKey = (key: string) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_KEY, key);
+    }
+};
+
+export const clearStoredApiKey = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+};
 
 const getGenAI = () => {
-  // Always create a new instance if the API key might have changed (e.g. via window.aistudio selection)
-  // or if it hasn't been initialized.
-  const apiKey = process.env.API_KEY;
+  // 1. Check Local Storage (User provided key)
+  const storedKey = getStoredApiKey();
+  
+  // 2. Check Environment Variable (Dev/Fallback)
+  const envKey = process.env.API_KEY;
+
+  const apiKey = storedKey || envKey;
+
   if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
+    throw new Error("API_KEY_MISSING"); 
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -236,6 +260,9 @@ const handleError = (error: any) => {
     }
     if (msg.includes("Safety") || msg.includes("blocked")) {
         throw new Error("errorSafety");
+    }
+    if (msg.includes("403") || msg.includes("401") || msg.includes("key") || msg.includes("Key")) {
+        throw new Error("errorAuth");
     }
 
     // Fallback

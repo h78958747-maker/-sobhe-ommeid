@@ -135,10 +135,13 @@ export const translations: Record<Language, Record<string, string>> = {
     swapFaces: "Swap Faces",
     processingSwap: "Swapping Faces...",
     swapPrompt: "Swap the face from the second image onto the body in the first image. Crucial: Automatically adjust skin tone, color temperature, and grain to perfectly match the target body. Maintain the subtle facial expressions and micro-details of the source face. Ensure seamless blending with no visible edges.",
-    // API Key
+    // API Key / Auth
     apiKeyTitle: "Studio Access",
-    apiKeyDesc: "To access the cinematic AI engine, please connect your Google API key.",
-    connectApi: "Connect Intelligence",
+    apiKeyDesc: "To use the AI engine, please enter your Google Gemini API Key. This ensures you have your own private access token.",
+    connectApi: "Connect",
+    getApiKey: "Get API Key from Google",
+    enterKeyPlaceholder: "Paste your API Key here (starts with AIza...)",
+    logout: "Disconnect API Key",
     // Error Handling
     errorTitle: "Generation Failed",
     tryAgain: "Try Again",
@@ -147,6 +150,7 @@ export const translations: Record<Language, Record<string, string>> = {
     errorServer: "AI Service is temporarily unavailable. Please try again later.",
     errorNetwork: "Network connection failed. Please check your internet.",
     errorRefusal: "The model refused the request. Please modify your input.",
+    errorAuth: "Authentication failed. Invalid API Key.",
     errorUnknown: "An unexpected error occurred. Please try again."
   },
   fa: {
@@ -281,10 +285,13 @@ export const translations: Record<Language, Record<string, string>> = {
     swapFaces: "جابجایی چهره‌ها",
     processingSwap: "در حال جابجایی چهره...",
     swapPrompt: "چهره تصویر دوم را روی بدن تصویر اول قرار بده. حیاتی: برای ترکیب طبیعی، رنگ پوست، دما و بافت را دقیقاً با بدن تصویر اول هماهنگ کن. حالات ظریف چهره و ریز-جزئیات صورت مرجع را حفظ کن. ترکیب باید کاملاً یکپارچه و بدون مرز باشد.",
-    // API Key
-    apiKeyTitle: "دسترسی استودیو",
-    apiKeyDesc: "برای دسترسی به موتور هوش مصنوعی سینمایی، لطفاً کلید API گوگل خود را متصل کنید.",
-    connectApi: "اتصال به هوش مصنوعی",
+    // API Key / Auth
+    apiKeyTitle: "ورود به استودیو",
+    apiKeyDesc: "برای استفاده از موتور هوش مصنوعی، لطفاً کلید API جمنای (Gemini) گوگل خود را وارد کنید. این کار باعث می‌شود هر کاربر توکن اختصاصی خود را داشته باشد.",
+    connectApi: "اتصال و ورود",
+    getApiKey: "دریافت کلید API از گوگل",
+    enterKeyPlaceholder: "کلید API خود را اینجا وارد کنید (با AIza شروع می‌شود)",
+    logout: "خروج و قطع اتصال",
     // Error Handling
     errorTitle: "خطا در تولید",
     tryAgain: "تلاش مجدد",
@@ -293,6 +300,7 @@ export const translations: Record<Language, Record<string, string>> = {
     errorServer: "سرویس هوش مصنوعی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.",
     errorNetwork: "عدم ارتباط با شبکه. لطفاً اینترنت خود را بررسی کنید.",
     errorRefusal: "مدل هوش مصنوعی درخواست را رد کرد. لطفاً ورودی را تغییر دهید.",
+    errorAuth: "خطای احراز هویت. کلید API نامعتبر است.",
     errorUnknown: "یک خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید."
   }
 };

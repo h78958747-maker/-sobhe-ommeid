@@ -8,7 +8,7 @@ import { HistoryGallery } from './components/HistoryGallery';
 import { ImageEditor } from './components/ImageEditor';
 import { LivingBackground } from './components/LivingBackground';
 import { ComparisonView } from './components/ComparisonView';
-import { generateEditedImage, generateFaceSwap } from './services/geminiService';
+import { generateEditedImage, generateFaceSwap, getStoredApiKey, setStoredApiKey, clearStoredApiKey } from './services/geminiService';
 import { generateInstantVideo } from './services/clientVideoService';
 import { saveHistoryItem } from './services/storageService';
 import { DEFAULT_PROMPT, QUALITY_MODIFIERS, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LOADING_MESSAGES, LIGHTING_ICONS, CINEMATIC_KEYWORDS } from './constants';
@@ -72,6 +72,7 @@ function App() {
 
   // API Key State
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
 
   // Updated Logo URL
   const LOGO_URL = "https://sobheommid.com/_nuxt/logo.BtixDU2P.svg";
@@ -79,8 +80,15 @@ function App() {
   useEffect(() => {
     document.documentElement.classList.add('dark');
     
-    // Check API Key Availability
+    // Check API Key Availability (Local Storage first, then Env, then Platform)
     const checkKey = async () => {
+      
+      const stored = getStoredApiKey();
+      if (stored) {
+          setHasApiKey(true);
+          return;
+      }
+
       // If manually set in env (dev), allow it
       if (process.env.API_KEY) {
         setHasApiKey(true);
@@ -96,11 +104,17 @@ function App() {
     checkKey();
   }, []);
 
-  const handleConnectApi = async () => {
-    if (window.aistudio && window.aistudio.openSelectKey) {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true);
+  const handleManualKeySubmit = () => {
+    if (apiKeyInput.trim().length > 15) { // Basic length check
+       setStoredApiKey(apiKeyInput.trim());
+       setHasApiKey(true);
     }
+  };
+
+  const handleLogout = () => {
+      clearStoredApiKey();
+      setHasApiKey(false);
+      setApiKeyInput("");
   };
 
   useEffect(() => {
@@ -345,22 +359,42 @@ function App() {
       
       <LivingBackground />
 
-      {/* API Key Connection Overlay */}
+      {/* API Key Connection Overlay (Login) */}
       {!hasApiKey && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-           <div className="w-20 h-20 mb-6 rounded-full bg-studio-gold/10 flex items-center justify-center border border-studio-gold/30 shadow-[0_0_40px_rgba(255,215,0,0.2)]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-studio-gold">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-              </svg>
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+           <div className="w-24 h-24 mb-6 rounded-3xl bg-studio-gold/10 flex items-center justify-center border border-studio-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)]">
+              <img src={LOGO_URL} className="w-16 h-16 object-contain" />
            </div>
-           <h2 className="text-3xl font-black text-white mb-2 tracking-tighter">{t.apiKeyTitle}</h2>
-           <p className="text-gray-400 max-w-md mb-8 leading-relaxed">{t.apiKeyDesc}</p>
-           <Button variant="gold" onClick={handleConnectApi} className="h-14 px-8 text-sm">
-             {t.connectApi}
-           </Button>
-           <div className="mt-8 text-[10px] text-gray-600">
-              <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="hover:text-white underline decoration-gray-600 underline-offset-4 transition-colors">
-                Billing Information
+           
+           <h2 className="text-2xl md:text-4xl font-black text-white mb-2 tracking-tighter">{t.apiKeyTitle}</h2>
+           <p className="text-gray-400 max-w-lg mb-8 leading-relaxed text-sm md:text-base">{t.apiKeyDesc}</p>
+           
+           <div className="w-full max-w-md space-y-4">
+              <input 
+                 type="password" 
+                 value={apiKeyInput}
+                 onChange={(e) => setApiKeyInput(e.target.value)}
+                 placeholder={t.enterKeyPlaceholder}
+                 className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-center text-white focus:border-studio-gold focus:ring-1 focus:ring-studio-gold outline-none transition-all placeholder:text-gray-600 font-mono text-sm"
+              />
+              
+              <Button variant="gold" onClick={handleManualKeySubmit} className="w-full h-14 text-sm font-bold shadow-studio-gold" disabled={apiKeyInput.length < 10}>
+                {t.connectApi}
+              </Button>
+           </div>
+
+           <div className="mt-8 pt-8 border-t border-white/5 w-full max-w-md flex flex-col items-center gap-3">
+              <span className="text-xs text-gray-500 uppercase tracking-widest">Don't have a key?</span>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center gap-2 text-xs md:text-sm text-studio-neon hover:text-white transition-colors py-2 px-4 rounded-full hover:bg-white/5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+                {t.getApiKey}
               </a>
            </div>
         </div>
@@ -414,6 +448,16 @@ function App() {
            </div>
 
            <div className="flex items-center gap-3">
+               <button 
+                 onClick={handleLogout}
+                 className="p-2 bg-red-500/10 backdrop-blur-md rounded-xl border border-red-500/20 text-red-400 hover:text-white hover:bg-red-500/30 transition-all"
+                 title={t.logout}
+              >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+              </button>
+
               <button 
                  onClick={() => setIsGalleryOpen(true)}
                  className="p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/5 text-gray-400 hover:text-white hover:border-studio-neon/50 transition-all"
