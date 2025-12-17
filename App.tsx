@@ -28,6 +28,7 @@ function App() {
   const [swapFaceImage, setSwapFaceImage] = useState<string | null>(null); // "Source/Face" in Face Swap
 
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
 
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("AUTO"); // Default to AUTO based on request
@@ -87,6 +88,11 @@ function App() {
     }
     return () => clearInterval(interval);
   }, [status.isLoading, isAnimating]);
+
+  // Reset imageLoaded state when result image or tab changes to trigger animations
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [resultImage, activeTab]);
 
   const addToHistory = async (image: string, p: string, ar: AspectRatio) => {
     const newItem: HistoryItem = {
@@ -290,8 +296,6 @@ function App() {
     
     setStatus({ isLoading: true, error: null });
     try {
-       // Use the current resultImage as the base for the edit to support iterative editing.
-       // The 'text' variable contains the user's edit instruction (e.g., "Add a retro filter").
        const img = await generateEditedImage(resultImage, text, aspectRatio);
        
        setResultImage(img);
@@ -409,7 +413,6 @@ function App() {
                  <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionComposition}</h3>
                </div>
                <div className="p-4 space-y-4">
-                  {/* BASE IMAGE UPLOAD */}
                   <ImageUpload 
                     onImageSelected={handleImageSelected} 
                     selectedImage={selectedImage}
@@ -418,7 +421,6 @@ function App() {
                     onOpenCamera={() => { setCameraTarget('base'); setIsCameraOpen(true); }}
                   />
 
-                  {/* FACE SWAP: SECOND UPLOAD */}
                   {appMode === 'faceswap' && (
                     <div className="animate-fade-in-up">
                        <div className="flex items-center gap-4 my-2">
@@ -438,7 +440,6 @@ function App() {
                     </div>
                   )}
 
-                  {/* Aspect Ratio Selector (Only Show in Portrait Mode) */}
                   {appMode === 'portrait' && (
                     <div className="space-y-2">
                        <p className="text-[10px] uppercase font-bold text-gray-500">{t.aspectRatio}</p>
@@ -482,7 +483,6 @@ function App() {
                </div>
             </div>
 
-            {/* SECTIONS 2 & 3: STYLE & TUNING (Only in Portrait Mode) */}
             {appMode === 'portrait' && (
               <>
                 <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up">
@@ -525,7 +525,6 @@ function App() {
                      <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionTuning}</h3>
                    </div>
                    <div className="p-4 space-y-4">
-                      {/* Sliders */}
                       <div className="space-y-3">
                         <div>
                            <div className="flex justify-between text-[10px] uppercase font-bold text-gray-500 mb-1">
@@ -543,7 +542,6 @@ function App() {
 
                       <div className="h-px bg-white/5"></div>
 
-                      {/* Settings Grid */}
                       <div className="grid grid-cols-1 gap-3">
                          <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -567,7 +565,7 @@ function App() {
                           <div className="flex gap-2">
                              <button onClick={() => setSkinTexture(!skinTexture)} className={`flex-1 py-3 rounded-xl border transition-all text-[10px] font-bold uppercase flex items-center justify-center gap-2 ${skinTexture ? 'bg-studio-neon/10 border-studio-neon text-studio-neon shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'bg-black/20 border-white/10 text-gray-500'}`}>
                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+                                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
                                  </svg>
                                 {t.skinTexture}
                              </button>
@@ -587,7 +585,6 @@ function App() {
                    </div>
                 </div>
 
-                {/* Advanced Prompt Section */}
                 <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up animation-delay-400">
                    <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
                      <svg className="w-4 h-4 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
@@ -619,7 +616,6 @@ function App() {
               </>
             )}
 
-            {/* GENERATE BUTTON */}
             <div className="sticky bottom-4 z-20">
                <Button 
                  variant="gold" 
@@ -634,10 +630,8 @@ function App() {
             </div>
           </div>
 
-          {/* RIGHT PANEL - VIEWPORT & RESULTS */}
           <div className="flex-1 w-full min-w-0 animate-stagger-3 order-1 lg:order-2 flex flex-col gap-4 h-[calc(100vh-120px)] sticky top-24">
             
-            {/* 1. TABS */}
             <div className="flex gap-1 p-1 bg-black/30 backdrop-blur rounded-full w-fit border border-white/10 self-center lg:self-start">
                <button onClick={() => setActiveTab('image')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'image' ? 'bg-white/10 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}>{t.viewImage}</button>
                <button onClick={() => setActiveTab('compare')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'compare' ? 'bg-studio-neon/20 text-studio-neon shadow' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewCompare}</button>
@@ -645,12 +639,10 @@ function App() {
                <button onClick={() => setActiveTab('edit')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'edit' ? 'bg-studio-gold/20 text-studio-gold shadow' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewEdit}</button>
             </div>
 
-            {/* 2. MAIN VIEWPORT */}
             <div className="flex-1 relative rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 shadow-2xl backdrop-blur-sm group/viewport flex flex-col min-h-[400px]">
                
                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
-               {/* Result Content */}
                <div className="flex-1 flex items-center justify-center p-6 overflow-hidden relative z-10">
                   {status.isLoading ? (
                      <div className="text-center space-y-6">
@@ -688,7 +680,16 @@ function App() {
                         language={language}
                      />
                   ) : activeTab === 'image' && resultImage ? (
-                    <img src={resultImage} className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/5 cursor-zoom-in transition-transform duration-500 hover:scale-[1.02]" />
+                    <img 
+                      src={resultImage} 
+                      onLoad={() => setImageLoaded(true)}
+                      className={`
+                        max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/5 cursor-zoom-in 
+                        transition-all duration-300 ease-out
+                        ${imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}
+                        hover:scale-[1.05] hover:shadow-studio-neon/40 hover:border-studio-neon/30
+                      `} 
+                    />
                   ) : activeTab === 'video' && videoResult ? (
                     <video src={videoResult} controls autoPlay loop className="max-h-full max-w-full rounded-lg shadow-2xl" />
                   ) : (
@@ -702,7 +703,6 @@ function App() {
                </div>
             </div>
 
-            {/* 3. ACTION BAR (Download & Share) */}
             {resultImage && !status.error && activeTab !== 'edit' && (
               <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 flex items-center justify-between animate-fade-in-up">
                  <div className="flex gap-2">
@@ -724,7 +724,6 @@ function App() {
               </div>
             )}
 
-            {/* 4. CHAT */}
             {resultImage && activeTab === 'image' && !status.error && (
               <div className="h-[200px] border border-white/10 rounded-2xl bg-black/40 backdrop-blur-md overflow-hidden">
                  <ChatInterface 
