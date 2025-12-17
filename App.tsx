@@ -290,15 +290,10 @@ function App() {
     
     setStatus({ isLoading: true, error: null });
     try {
-       let img;
-       if (appMode === 'faceswap' && selectedImage && swapFaceImage) {
-         const editPrompt = `${t.swapPrompt}, ${text}`;
-         img = await generateEditedImage(resultImage, editPrompt, aspectRatio);
-       } else {
-         const currentPrompt = constructPrompt();
-         const editPrompt = `${currentPrompt}, ${text}`;
-         img = await generateEditedImage(selectedImage!, editPrompt, aspectRatio);
-       }
+       // Use the current resultImage as the base for the edit to support iterative editing.
+       // The 'text' variable contains the user's edit instruction (e.g., "Add a retro filter").
+       const img = await generateEditedImage(resultImage, text, aspectRatio);
+       
        setResultImage(img);
        const modelMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: t.modelGreeting, timestamp: Date.now() };
        setChatMessages(prev => [...prev, modelMsg]);
