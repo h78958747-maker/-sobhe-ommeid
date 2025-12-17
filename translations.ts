@@ -144,6 +144,7 @@ export const translations: Record<Language, Record<string, string>> = {
     errorNetwork: "Network connection failed. Please check your internet.",
     errorRefusal: "The model refused the request. Please modify your input.",
     errorAuth: "Authentication failed. Invalid API Key.",
+    errorApiKeyMissing: "API Key is missing. Please configure the API_KEY environment variable to use the generation features.",
     errorUnknown: "An unexpected error occurred. Please try again."
   },
   fa: {
@@ -287,6 +288,7 @@ export const translations: Record<Language, Record<string, string>> = {
     errorNetwork: "عدم ارتباط با شبکه. لطفاً اینترنت خود را بررسی کنید.",
     errorRefusal: "مدل هوش مصنوعی درخواست را رد کرد. لطفاً ورودی را تغییر دهید.",
     errorAuth: "خطای احراز هویت. کلید API نامعتبر است.",
+    errorApiKeyMissing: "کلید API یافت نشد. لطفاً متغیر محیطی API_KEY را برای استفاده از قابلیت‌های تولید تصویر تنظیم کنید.",
     errorUnknown: "یک خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید."
   }
 };

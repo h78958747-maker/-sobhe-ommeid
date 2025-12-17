@@ -224,6 +224,11 @@ const handleError = (error: any) => {
         throw error; // Re-throw localized keys
     }
 
+    // Specific handling for missing API key configuration
+    if (msg === "API_KEY_MISSING" || msg.includes("API_KEY_MISSING")) {
+        throw new Error("errorApiKeyMissing");
+    }
+
     // Check for Network/API errors
     if (msg.includes("429") || msg.includes("Quota") || msg.includes("quota")) {
         throw new Error("errorQuota");
