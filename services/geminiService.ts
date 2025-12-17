@@ -4,12 +4,11 @@ import { MODEL_NAME } from "../constants";
 import { AspectRatio } from "../types";
 
 const getGenAI = () => {
-  // Use environment variable if available (for Vercel), otherwise use the provided hardcoded key
-  const apiKey = process.env.API_KEY || "vck_3xFHk7YyVDukZURnZSxk2xn9ofxXBv8QjJDv4VKpiTOpGUjjjl0C6BBW";
+  // Access the API key exclusively from process.env.API_KEY as per guidelines
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    console.error("API_KEY_MISSING: Please ensure an API Key is provided.");
-    throw new Error("errorApiKeyMissing"); 
+    throw new Error("API_KEY_MISSING"); 
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -58,26 +57,42 @@ export const generateEditedImage = async (
 ): Promise<string> => {
   const ai = getGenAI();
   const optimizedImage = await optimizeImage(base64Image, 1536, 0.85);
-  const imageConfig: any = {};
-  if (aspectRatio !== 'AUTO') {
-      imageConfig.aspectRatio = aspectRatio;
-  }
+  
+  const config: any = {
+    imageConfig: {
+      aspectRatio: aspectRatio === 'AUTO' ? undefined : aspectRatio
+    }
+  };
 
   try {
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
           { inlineData: { mimeType: getMimeType(optimizedImage), data: cleanBase64(optimizedImage) } },
           { text: prompt },
         ],
       },
-      config: { imageConfig }
+      config
     });
-    return handleResponse(response);
+
+    const candidate = response.candidates?.[0];
+    if (!candidate) throw new Error("errorServer");
+    
+    const parts = candidate.content?.parts;
+    if (!parts || parts.length === 0) throw new Error("errorUnknown");
+
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+      }
+    }
+    
+    throw new Error("errorUnknown");
   } catch (error: any) {
-    handleError(error);
-    return "";
+    console.error("Gemini API Error:", error);
+    if (error.message === "API_KEY_MISSING") throw error;
+    throw new Error("errorServer");
   }
 };
 
@@ -94,7 +109,7 @@ export const generateFaceSwap = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
           { inlineData: { mimeType: getMimeType(optTarget), data: cleanBase64(optTarget) } },
@@ -102,36 +117,17 @@ export const generateFaceSwap = async (
           { text: prompt },
         ],
       },
-      config: {} 
     });
-    return handleResponse(response);
+
+    const candidate = response.candidates?.[0];
+    const parts = candidate?.content?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData?.data) return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+      }
+    }
+    throw new Error("errorUnknown");
   } catch (error: any) {
-    handleError(error);
-    return "";
+    throw error;
   }
 };
-
-const handleResponse = (response: any): string => {
-    const candidate = response.candidates?.[0];
-    if (!candidate) throw new Error("errorServer");
-    if (candidate.finishReason === "SAFETY") throw new Error("errorSafety");
-    if (candidate.finishReason === "IMAGE_OTHER" || candidate.finishReason === "OTHER") throw new Error("errorRefusal");
-    const parts = candidate.content?.parts;
-    if (!parts || parts.length === 0) throw new Error("errorUnknown");
-    for (const part of parts) {
-      if (part.inlineData?.data) return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-    }
-    for (const part of parts) {
-      if (part.text) throw new Error("errorRefusal");
-    }
-    throw new Error("errorUnknown");
-};
-
-const handleError = (error: any) => {
-    const msg = error.message || "";
-    if (msg.startsWith("error")) throw error;
-    if (msg.includes("429") || msg.includes("Quota")) throw new Error("errorQuota");
-    if (msg.includes("503") || msg.includes("500")) throw new Error("errorServer");
-    if (msg.includes("fetch") || msg.includes("network")) throw new Error("errorNetwork");
-    throw new Error("errorUnknown");
-}
