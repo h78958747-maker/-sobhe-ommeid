@@ -18,39 +18,24 @@ import { translations } from './translations';
 
 function App() {
   const [language, setLanguage] = useState<Language>('fa');
-  const theme: Theme = 'dark';
   const t = translations[language];
-  
-  // App Mode State
   const [appMode, setAppMode] = useState<AppMode>('portrait');
-  
-  // Image State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [swapFaceImage, setSwapFaceImage] = useState<string | null>(null);
-
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null);
-
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("AUTO");
   const [quality, setQuality] = useState<QualityMode>('high');
   const [status, setStatus] = useState<ProcessingState>({ isLoading: false, error: null });
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  
-  // Cropper & Camera State
   const [isCropping, setIsCropping] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<'base' | 'face'>('base');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraTarget, setCameraTarget] = useState<'base' | 'face'>('base');
-
-  // History Gallery State
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-
-  // Loading Message State
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
-
-  // Settings
   const [skinTexture, setSkinTexture] = useState<boolean>(true);
   const [faceDetail, setFaceDetail] = useState<number>(75); 
   const [creativityLevel, setCreativityLevel] = useState<number>(30);
@@ -59,20 +44,13 @@ function App() {
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [showPromptSuggestions, setShowPromptSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
-  
-  // Animation State
   const [isAnimating, setIsAnimating] = useState(false);
   const [videoResult, setVideoResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'image' | 'video' | 'compare' | 'edit'>('image');
-
-  // Chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-
-  // Batch
   const [batchQueue, setBatchQueue] = useState<BatchItem[]>([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
-  // Logo URL
   const LOGO_URL = "https://sobheommid.com/_nuxt/logo.BtixDU2P.svg";
 
   useEffect(() => {
@@ -97,12 +75,8 @@ function App() {
   const addToHistory = async (image: string, p: string, ar: AspectRatio) => {
     const newItem: HistoryItem = {
       id: Date.now().toString() + Math.random().toString(36).substring(2),
-      imageUrl: image,
-      prompt: p,
-      aspectRatio: ar,
-      timestamp: Date.now(),
-      skinTexture, faceDetail, lighting, colorGrading, creativityLevel,
-      mode: appMode
+      imageUrl: image, prompt: p, aspectRatio: ar, timestamp: Date.now(),
+      skinTexture, faceDetail, lighting, colorGrading, creativityLevel, mode: appMode
     };
     setHistory(prev => [newItem, ...prev]);
     saveHistoryItem(newItem).catch(console.error);
@@ -112,9 +86,7 @@ function App() {
     if (Array.isArray(base64)) {
        if (appMode === 'portrait') {
          const newItems: BatchItem[] = base64.map((b, i) => ({
-           id: `batch-${Date.now()}-${i}`,
-           original: b,
-           status: 'pending'
+           id: `batch-${Date.now()}-${i}`, original: b, status: 'pending'
          }));
          setBatchQueue(newItems);
          setSelectedImage(base64[0]); 
@@ -125,26 +97,17 @@ function App() {
        setSelectedImage(base64 || null);
        setBatchQueue([]);
     }
-    setResultImage(null);
-    setVideoResult(null);
-    setActiveTab('image');
-    setStatus({ isLoading: false, error: null });
+    setResultImage(null); setVideoResult(null); setActiveTab('image'); setStatus({ isLoading: false, error: null });
   }, [appMode]);
 
   const handleFaceImageSelected = useCallback((base64: string | string[]) => {
-    if (Array.isArray(base64)) {
-        setSwapFaceImage(base64[0]);
-    } else {
-        setSwapFaceImage(base64 || null);
-    }
+    if (Array.isArray(base64)) setSwapFaceImage(base64[0]);
+    else setSwapFaceImage(base64 || null);
   }, []);
 
   const handleCameraCapture = (imageSrc: string) => {
-    if (cameraTarget === 'base') {
-      handleImageSelected(imageSrc);
-    } else {
-      handleFaceImageSelected(imageSrc);
-    }
+    if (cameraTarget === 'base') handleImageSelected(imageSrc);
+    else handleFaceImageSelected(imageSrc);
     setIsCameraOpen(false);
   };
 
@@ -161,582 +124,183 @@ function App() {
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setCustomPrompt(val);
-
     const words = val.split(' ');
     const lastWord = words[words.length - 1].toLowerCase();
-
     if (lastWord.length > 1) {
        const matches = CINEMATIC_KEYWORDS.filter(k => k.toLowerCase().startsWith(lastWord));
-       if (matches.length > 0) {
-          setFilteredSuggestions(matches);
-          setShowPromptSuggestions(true);
-       } else {
-          setShowPromptSuggestions(false);
-       }
-    } else {
-       setShowPromptSuggestions(false);
-    }
+       if (matches.length > 0) { setFilteredSuggestions(matches); setShowPromptSuggestions(true); }
+       else setShowPromptSuggestions(false);
+    } else setShowPromptSuggestions(false);
   };
 
   const acceptSuggestion = (suggestion: string) => {
     const words = customPrompt.split(' ');
     words.pop();
     const newText = words.join(' ') + (words.length > 0 ? ' ' : '') + suggestion + ', ';
-    setCustomPrompt(newText);
-    setShowPromptSuggestions(false);
+    setCustomPrompt(newText); setShowPromptSuggestions(false);
   };
 
   const constructPrompt = () => {
-    // Explicitly focused on "Cinema" as per user request
     let base = customPrompt ? customPrompt : DEFAULT_PROMPT;
-
     if (selectedStyleId && !customPrompt) {
       const style = PROMPT_SUGGESTIONS.find(s => s.id === selectedStyleId);
       if (style) base = style.prompt; 
     }
-
     let finalPrompt = base;
-
     if (skinTexture) finalPrompt += ", ultra-realistic skin texture, 8k movie resolution";
     if (faceDetail > 60) finalPrompt += ", high-fidelity cinematic facial details";
-    
-    if (creativityLevel < 30) finalPrompt += ", stay true to the original person's identity, professional cinema retouch";
-    else if (creativityLevel > 70) finalPrompt += ", intense cinematic transformation, stylized movie character look";
-
+    if (creativityLevel < 30) finalPrompt += ", professional cinema retouch";
+    else if (creativityLevel > 70) finalPrompt += ", intense cinematic transformation";
     finalPrompt += `, ${LIGHTING_STYLES[lighting]}`;
     if (colorGrading !== 'none') finalPrompt += `, ${COLOR_GRADING_STYLES[colorGrading]}`;
     finalPrompt += QUALITY_MODIFIERS[quality];
-    
     return finalPrompt;
   };
 
   const handleGenerate = async () => {
     if (!selectedImage) return;
-
-    if (appMode === 'faceswap') {
-      if (!swapFaceImage) return;
-      setStatus({ isLoading: true, error: null });
-      setResultImage(null);
-      try {
-        const prompt = (customPrompt || t.swapPrompt) + QUALITY_MODIFIERS[quality];
-        const img = await generateFaceSwap(selectedImage, swapFaceImage, prompt);
-        setResultImage(img);
-        await addToHistory(img, prompt, aspectRatio);
-      } catch (error: any) {
-        setStatus({ isLoading: false, error: error.message });
-      } finally {
-        setStatus(prev => ({ ...prev, isLoading: false }));
-      }
-      return;
-    }
-
-    if (batchQueue.length > 0) { handleBatchGenerate(); return; }
-
     setStatus({ isLoading: true, error: null });
     setResultImage(null);
     try {
-      const finalPrompt = constructPrompt();
-      const img = await generateEditedImage(selectedImage, finalPrompt, aspectRatio);
-      setResultImage(img);
-      await addToHistory(img, finalPrompt, aspectRatio);
+      if (appMode === 'faceswap') {
+        if (!swapFaceImage) return;
+        const prompt = (customPrompt || t.swapPrompt) + QUALITY_MODIFIERS[quality];
+        const img = await generateFaceSwap(selectedImage, swapFaceImage, prompt);
+        setResultImage(img); await addToHistory(img, prompt, aspectRatio);
+      } else {
+        const finalPrompt = constructPrompt();
+        const img = await generateEditedImage(selectedImage, finalPrompt, aspectRatio);
+        setResultImage(img); await addToHistory(img, finalPrompt, aspectRatio);
+      }
     } catch (error: any) {
       setStatus({ isLoading: false, error: error.message });
     } finally {
       setStatus(prev => ({ ...prev, isLoading: false }));
     }
-  };
-
-  const handleBatchGenerate = async () => {
-    setIsBatchProcessing(true);
-    const finalPrompt = constructPrompt();
-    for (let i = 0; i < batchQueue.length; i++) {
-      const item = batchQueue[i];
-      setBatchQueue(prev => prev.map(p => p.id === item.id ? { ...p, status: 'processing' } : p));
-      try {
-        const result = await generateEditedImage(item.original, finalPrompt, aspectRatio);
-        setBatchQueue(prev => prev.map(p => p.id === item.id ? { ...p, status: 'done', result } : p));
-        if (i === 0) setResultImage(result);
-        await addToHistory(result, finalPrompt, aspectRatio);
-      } catch (err) {
-        setBatchQueue(prev => prev.map(p => p.id === item.id ? { ...p, status: 'error' } : p));
-      }
-    }
-    setIsBatchProcessing(false);
   };
 
   const handleAnimate = async () => {
     if (!resultImage) return;
-    setIsAnimating(true);
-    setStatus({ isLoading: true, error: null });
+    setIsAnimating(true); setStatus({ isLoading: true, error: null });
     try {
       const videoUrl = await generateInstantVideo(resultImage);
-      setVideoResult(videoUrl);
-      setActiveTab('video');
+      setVideoResult(videoUrl); setActiveTab('video');
     } catch (error: any) {
       setStatus({ isLoading: false, error: error.message });
     } finally {
-      setIsAnimating(false);
-      setStatus(prev => ({ ...prev, isLoading: false }));
+      setIsAnimating(false); setStatus(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const handleDownload = (url: string, filename: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CinemaStudio_${filename}_${Date.now()}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const a = document.createElement('a'); a.href = url; a.download = `CinemaStudio_${filename}_${Date.now()}`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   const handleSendMessage = async (text: string) => {
     if (!resultImage) return;
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text, timestamp: Date.now() };
     setChatMessages(prev => [...prev, userMsg]);
-    
     setStatus({ isLoading: true, error: null });
     try {
        const img = await generateEditedImage(resultImage, text, aspectRatio);
-       
        setResultImage(img);
        const modelMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: t.modelGreeting, timestamp: Date.now() };
        setChatMessages(prev => [...prev, modelMsg]);
-    } catch (error: any) {
-      setStatus({ isLoading: false, error: error.message });
-    } finally {
-      setStatus(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const getErrorMessage = (errorKey: string | null) => {
-    if (!errorKey) return t.errorGeneric;
-    return t[errorKey] || errorKey || t.errorGeneric;
+    } catch (error: any) { setStatus({ isLoading: false, error: error.message });
+    } finally { setStatus(prev => ({ ...prev, isLoading: false })); }
   };
 
   return (
     <div dir={language === 'fa' ? 'rtl' : 'ltr'} className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden relative selection:bg-studio-neon/30">
-      
       <LivingBackground />
+      {isCameraOpen && <CameraCapture onCapture={handleCameraCapture} onCancel={() => setIsCameraOpen(false)} labelCapture={t.takePhoto} labelCancel={t.cancel} />}
+      {isCropping && imageToCrop && <ImageCropper imageSrc={imageToCrop} onCropComplete={(cropped) => { if (cropTarget === 'base') setSelectedImage(cropped); else setSwapFaceImage(cropped); setIsCropping(false); }} onCancel={() => setIsCropping(false)} confirmLabel={t.applyCrop} cancelLabel={t.cancel} instructions={t.cropInstructions} />}
+      {isGalleryOpen && <HistoryGallery onSelect={handleHistorySelect} onClose={() => setIsGalleryOpen(false)} title={t.galleryTitle} emptyMessage={t.galleryEmpty} />}
 
-      {isCameraOpen && (
-        <CameraCapture 
-           onCapture={handleCameraCapture} 
-           onCancel={() => setIsCameraOpen(false)}
-           labelCapture={t.takePhoto}
-           labelCancel={t.cancel}
-        />
-      )}
-
-      {isCropping && imageToCrop && (
-        <ImageCropper
-          imageSrc={imageToCrop}
-          onCropComplete={(cropped) => { 
-             if (cropTarget === 'base') setSelectedImage(cropped);
-             else setSwapFaceImage(cropped);
-             setIsCropping(false); 
-             setImageToCrop(null); 
-          }}
-          onCancel={() => { setIsCropping(false); setImageToCrop(null); }}
-          confirmLabel={t.applyCrop} cancelLabel={t.cancelCrop} instructions={t.cropInstructions}
-        />
-      )}
-
-      {isGalleryOpen && (
-        <HistoryGallery 
-           onSelect={handleHistorySelect} 
-           onClose={() => setIsGalleryOpen(false)} 
-           title={t.galleryTitle}
-           emptyMessage={t.galleryEmpty}
-        />
-      )}
-
-      <div className="relative z-10 max-w-[1920px] mx-auto p-4 md:p-6 lg:p-8 flex flex-col gap-6 transition-opacity duration-500 opacity-100">
-        
-        <header className="flex items-center justify-between animate-stagger-1 pb-4 border-b border-white/5">
-           <div className="flex items-center gap-4 select-none">
-              <div className="w-12 h-12 md:w-20 md:h-20 rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(0,240,255,0.2)] hover:shadow-studio-neon/40 transition-shadow duration-500 bg-black/40 p-1 flex items-center justify-center">
-                 <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]" />
+      <div className="relative z-10 max-w-[1920px] mx-auto p-4 md:p-8 flex flex-col gap-6">
+        <header className="flex items-center justify-between pb-4 border-b border-white/5">
+           <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-black/40 p-1 flex items-center justify-center shadow-neon-blue transition-all duration-500 hover:shadow-studio-neon/50">
+                 <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]" />
               </div>
-              <div className="flex flex-col">
-                 <h1 className="text-xl md:text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-studio-neon to-white">{t.instituteName}</h1>
-                 <p className="text-[10px] md:text-xs font-bold tracking-[0.3em] text-studio-neon uppercase opacity-80">{t.appTitle}</p>
+              <div>
+                 <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-studio-neon to-white">{t.instituteName}</h1>
+                 <p className="text-xs font-bold text-studio-neon uppercase tracking-widest">{t.appTitle}</p>
               </div>
            </div>
-
-           <div className="flex items-center gap-3">
-              <button 
-                 onClick={() => setIsGalleryOpen(true)}
-                 className="p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/5 text-gray-400 hover:text-white hover:border-studio-neon/50 transition-all active:scale-95"
-                 title={t.history}
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-              </button>
-              <div className="flex items-center bg-black/30 backdrop-blur-md rounded-xl p-1 border border-white/5">
-                 <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${language === 'en' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-gray-400 hover:text-white'}`}>EN</button>
-                 <button onClick={() => setLanguage('fa')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${language === 'fa' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-gray-400 hover:text-white'}`}>FA</button>
+           <div className="flex gap-3">
+              <button onClick={() => setIsGalleryOpen(true)} className="p-2 bg-black/30 rounded-xl border border-white/5 text-gray-400 hover:text-white transition-all"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
+              <div className="flex bg-black/30 rounded-xl p-1 border border-white/5">
+                 <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === 'en' ? 'bg-white text-black' : 'text-gray-400'}`}>EN</button>
+                 <button onClick={() => setLanguage('fa')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${language === 'fa' ? 'bg-white text-black' : 'text-gray-400'}`}>FA</button>
               </div>
            </div>
         </header>
 
-        <main className="flex flex-col lg:flex-row gap-6 items-start">
-          
-          <div className="w-full lg:w-[420px] xl:w-[460px] flex-shrink-0 flex flex-col gap-4 animate-stagger-2 order-2 lg:order-1">
-            
-            <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-glass">
-                <button 
-                  onClick={() => { setAppMode('portrait'); setResultImage(null); setStatus({ isLoading: false, error: null }); }}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${appMode === 'portrait' ? 'bg-studio-neon/20 text-studio-neon border border-studio-neon/50 shadow-[0_0_20px_rgba(0,240,255,0.2)]' : 'text-gray-500 hover:text-white'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-                  {t.modePortrait}
-                </button>
-                <button 
-                  onClick={() => { setAppMode('faceswap'); setResultImage(null); setStatus({ isLoading: false, error: null }); }}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${appMode === 'faceswap' ? 'bg-studio-purple/20 text-studio-purple border border-studio-purple/50 shadow-[0_0_20px_rgba(168,85,247,0.2)]' : 'text-gray-500 hover:text-white'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
-                  {t.modeFaceSwap}
-                </button>
+        <main className="flex flex-col lg:flex-row gap-8">
+          <div className="w-full lg:w-[450px] flex flex-col gap-6 order-2 lg:order-1">
+            <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2">
+                <button onClick={() => setAppMode('portrait')} className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all ${appMode === 'portrait' ? 'bg-studio-neon/20 text-studio-neon' : 'text-gray-500 hover:text-white'}`}>{t.modePortrait}</button>
+                <button onClick={() => setAppMode('faceswap')} className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase transition-all ${appMode === 'faceswap' ? 'bg-studio-purple/20 text-studio-purple' : 'text-gray-500 hover:text-white'}`}>{t.modeFaceSwap}</button>
             </div>
             
-            <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass transition-all duration-300 hover:border-white/20">
-               <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
-                 <svg className="w-4 h-4 text-studio-neon animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                 <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionComposition}</h3>
-               </div>
-               <div className="p-4 space-y-4">
-                  <ImageUpload 
-                    onImageSelected={handleImageSelected} 
-                    selectedImage={selectedImage}
-                    queue={batchQueue}
-                    title={appMode === 'faceswap' ? t.labelTarget : undefined}
-                    onOpenCamera={() => { setCameraTarget('base'); setIsCameraOpen(true); }}
-                  />
-
-                  {appMode === 'faceswap' && (
-                    <div className="animate-fade-in-up">
-                       <div className="flex items-center gap-4 my-2">
-                          <div className="h-px bg-white/10 flex-1"></div>
-                          <div className="p-2 bg-white/5 rounded-full border border-white/10">
-                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                          </div>
-                          <div className="h-px bg-white/10 flex-1"></div>
-                       </div>
-                       <ImageUpload 
-                         onImageSelected={handleFaceImageSelected} 
-                         selectedImage={swapFaceImage}
-                         title={t.labelSource}
-                         className="h-48 md:h-56"
-                         onOpenCamera={() => { setCameraTarget('face'); setIsCameraOpen(true); }}
-                       />
-                    </div>
-                  )}
-
-                  {appMode === 'portrait' && (
-                    <div className="space-y-2">
-                       <p className="text-[10px] uppercase font-bold text-gray-500">{t.aspectRatio}</p>
-                       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                          <button
-                              onClick={() => setAspectRatio('AUTO')}
-                              className={`
-                                relative group flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-300
-                                ${aspectRatio === 'AUTO' 
-                                  ? 'bg-studio-neon/10 border-studio-neon/50 shadow-[0_0_15px_rgba(0,240,255,0.15)]' 
-                                  : 'bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5'}
-                              `}
-                            >
-                              <div className={`border-[1.5px] border-dashed rounded-[2px] mb-1.5 transition-all ${aspectRatio === 'AUTO' ? 'border-studio-neon bg-studio-neon/20' : 'border-gray-500 group-hover:border-gray-300'} w-6 h-4`}></div>
-                              <span className={`text-[9px] font-bold ${aspectRatio === 'AUTO' ? 'text-studio-neon' : 'text-gray-500'}`}>{t.ratioAuto}</span>
-                          </button>
-                          {[
-                            { r: '1:1', w: 'w-4', h: 'h-4' },
-                            { r: '4:3', w: 'w-5', h: 'h-[15px]' },
-                            { r: '16:9', w: 'w-6', h: 'h-[13px]' },
-                            { r: '3:4', w: 'w-[15px]', h: 'h-5' },
-                            { r: '9:16', w: 'w-[13px]', h: 'h-6' },
-                          ].map((item) => (
-                            <button
-                              key={item.r}
-                              onClick={() => setAspectRatio(item.r as AspectRatio)}
-                              className={`
-                                relative group flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-300
-                                ${aspectRatio === item.r 
-                                  ? 'bg-studio-neon/10 border-studio-neon/50 shadow-[0_0_15px_rgba(0,240,255,0.15)]' 
-                                  : 'bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5'}
-                              `}
-                            >
-                              <div className={`border-[1.5px] rounded-[2px] mb-1.5 transition-all ${aspectRatio === item.r ? 'border-studio-neon bg-studio-neon/20' : 'border-gray-500 group-hover:border-gray-300'} ${item.w} ${item.h}`}></div>
-                              <span className={`text-[9px] font-bold ${aspectRatio === item.r ? 'text-studio-neon' : 'text-gray-500'}`}>{item.r}</span>
-                            </button>
+            <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-3xl p-5 space-y-6">
+               <ImageUpload onImageSelected={handleImageSelected} selectedImage={selectedImage} title={appMode === 'faceswap' ? t.labelTarget : t.uploadTitle} onOpenCamera={() => { setCameraTarget('base'); setIsCameraOpen(true); }} />
+               {appMode === 'faceswap' && <ImageUpload onImageSelected={handleFaceImageSelected} selectedImage={swapFaceImage} title={t.labelSource} onOpenCamera={() => { setCameraTarget('face'); setIsCameraOpen(true); }} />}
+               
+               {appMode === 'portrait' && (
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2 space-y-3">
+                       <p className="text-[10px] uppercase font-bold text-gray-500">{t.sectionStyle}</p>
+                       <div className="grid grid-cols-3 gap-2">
+                          {PROMPT_SUGGESTIONS.map(s => (
+                            <button key={s.id} onClick={() => setSelectedStyleId(s.id)} className={`h-12 rounded-xl text-[9px] font-bold uppercase border transition-all ${selectedStyleId === s.id ? 'bg-studio-neon/20 border-studio-neon text-studio-neon' : 'bg-black/40 border-white/5 hover:border-white/20 text-gray-400'}`}>{t[s.labelKey]}</button>
                           ))}
                        </div>
                     </div>
-                  )}
-               </div>
+                 </div>
+               )}
             </div>
 
-            {appMode === 'portrait' && (
-              <>
-                <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up">
-                   <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
-                     <svg className="w-4 h-4 text-studio-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionStyle}</h3>
-                   </div>
-                   <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-                      <button 
-                         onClick={() => setSelectedStyleId(null)}
-                         className={`h-16 rounded-lg text-[10px] font-bold uppercase transition-all duration-300 border flex flex-col items-center justify-center gap-1 ${!selectedStyleId ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'bg-black/40 text-gray-500 border-white/5 hover:border-white/20'}`}
-                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-                         </svg>
-                        Default
-                      </button>
-                      {PROMPT_SUGGESTIONS.map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedStyleId(s.id)}
-                          className={`relative h-16 rounded-lg overflow-hidden group border transition-all duration-300 ${selectedStyleId === s.id ? 'border-transparent ring-2 ring-studio-neon shadow-[0_0_20px_rgba(0,240,255,0.3)] scale-[1.05]' : 'border-white/5 hover:border-white/20 opacity-80 hover:opacity-100'}`}
-                        >
-                          <div className={`absolute inset-0 bg-gradient-to-br ${s.color} opacity-80`}></div>
-                          <div className="relative z-10 flex flex-col items-center justify-center h-full gap-1">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-white">
-                                 <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
-                              </svg>
-                              <span className="text-[9px] font-bold text-white uppercase tracking-wider drop-shadow-md">{t[s.labelKey]}</span>
-                          </div>
-                        </button>
-                      ))}
-                   </div>
-                </div>
-
-                <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up animation-delay-200">
-                    <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
-                     <svg className="w-4 h-4 text-studio-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionTuning}</h3>
-                   </div>
-                   <div className="p-4 space-y-4">
-                      <div className="space-y-3">
-                        <div>
-                           <div className="flex justify-between text-[10px] uppercase font-bold text-gray-500 mb-1">
-                              <span>{t.faceDetail}</span><span className="text-studio-neon">{faceDetail}%</span>
-                           </div>
-                           <input type="range" min="0" max="100" value={faceDetail} onChange={(e) => setFaceDetail(Number(e.target.value))} className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer" />
-                        </div>
-                        <div>
-                           <div className="flex justify-between text-[10px] uppercase font-bold text-gray-500 mb-1">
-                              <span>{t.creativityLevel}</span><span className="text-studio-purple">{creativityLevel}%</span>
-                           </div>
-                           <input type="range" min="0" max="100" value={creativityLevel} onChange={(e) => setCreativityLevel(Number(e.target.value))} className="w-full h-1 bg-gradient-to-r from-studio-neon to-studio-purple rounded-full appearance-none cursor-pointer" />
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-white/5"></div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                         <div className="relative">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-studio-neon pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.077-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a16.001 16.001 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
-                                </svg>
-                            </div>
-                            <select 
-                                 value={colorGrading}
-                                 onChange={(e) => setColorGrading(e.target.value as ColorGradingStyle)}
-                                 className="w-full bg-black/40 text-xs text-white rounded-xl pl-10 pr-4 py-3 border border-white/10 focus:border-studio-neon outline-none appearance-none transition-all duration-300"
-                              >
-                                 <option value="none">{t.gradeNone}</option>
-                                 <option value="teal_orange">{t.gradeTealOrange}</option>
-                                 <option value="cool_noir">{t.gradeNoir}</option>
-                                 <option value="warm_vintage">{t.gradeVintage}</option>
-                                 <option value="classic_bw">{t.gradeBW}</option>
-                              </select>
-                         </div>
-
-                          <div className="flex gap-2">
-                             <button onClick={() => setSkinTexture(!skinTexture)} className={`flex-1 py-3 rounded-xl border transition-all duration-300 text-[10px] font-bold uppercase flex items-center justify-center gap-2 ${skinTexture ? 'bg-studio-neon/10 border-studio-neon text-studio-neon shadow-[0_0_10px_rgba(0,240,255,0.2)]' : 'bg-black/20 border-white/10 text-gray-500'}`}>
-                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
-                                 </svg>
-                                {t.skinTexture}
-                             </button>
-                          </div>
-
-                          <div className="flex bg-black/20 rounded-xl p-1 border border-white/5">
-                              {['cinematic', 'dramatic', 'soft', 'intense'].map((l) => (
-                                 <button key={l} onClick={() => setLighting(l as LightingIntensity)} className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-[9px] font-bold uppercase transition-all duration-300 ${lighting === l ? 'bg-studio-neon/20 text-studio-neon border border-studio-neon/30' : 'text-gray-500'}`}>
-                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                     <path strokeLinecap="round" strokeLinejoin="round" d={LIGHTING_ICONS[l as LightingIntensity]} />
-                                   </svg>
-                                   {t[`light${l.charAt(0).toUpperCase() + l.slice(1)}`]}
-                                 </button>
-                              ))}
-                           </div>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-glass animate-fade-in-up animation-delay-400">
-                   <div className="p-4 bg-white/5 border-b border-white/5 flex items-center gap-2">
-                     <svg className="w-4 h-4 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
-                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">{t.sectionAdvanced}</h3>
-                   </div>
-                   <div className="p-4 relative">
-                      <textarea
-                        value={customPrompt}
-                        onChange={handlePromptChange}
-                        placeholder={t.customPromptPlaceholder}
-                        className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:border-studio-neon focus:ring-1 focus:ring-studio-neon outline-none resize-none transition-all duration-300"
-                      />
-                      {showPromptSuggestions && filteredSuggestions.length > 0 && (
-                        <div className="absolute bottom-full left-4 bg-gray-900 border border-white/10 rounded-xl shadow-2xl p-2 max-h-40 overflow-y-auto mb-2 z-50 min-w-[200px] animate-zoom-in backdrop-blur-xl">
-                           <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-2">{t.suggestions}</p>
-                           {filteredSuggestions.map((s, i) => (
-                             <div 
-                               key={i} 
-                               onClick={() => acceptSuggestion(s)}
-                               className="px-2 py-1.5 hover:bg-studio-neon/20 rounded-lg cursor-pointer text-xs text-studio-neon transition-colors"
-                             >
-                               {s}
-                             </div>
-                           ))}
-                        </div>
-                      )}
-                   </div>
-                </div>
-              </>
-            )}
-
-            <div className="sticky bottom-4 z-20">
-               <Button 
-                 variant="gold" 
-                 onClick={handleGenerate} 
-                 isLoading={status.isLoading} 
-                 disabled={!selectedImage || (appMode === 'faceswap' && !swapFaceImage)}
-                 className="w-full h-16 text-sm md:text-base shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-pulse-glow"
-               >
-                  {appMode === 'faceswap' ? t.swapFaces : (batchQueue.length > 0 ? t.processBatch : t.generate)}
-                  <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-               </Button>
-            </div>
+            <Button variant="gold" onClick={handleGenerate} isLoading={status.isLoading} disabled={!selectedImage || (appMode === 'faceswap' && !swapFaceImage)} className="w-full h-16 text-lg animate-pulse-glow">
+                {appMode === 'faceswap' ? t.swapFaces : t.generate}
+            </Button>
           </div>
 
-          <div className="flex-1 w-full min-w-0 animate-stagger-3 order-1 lg:order-2 flex flex-col gap-4 h-[calc(100vh-120px)] sticky top-24">
-            
-            <div className="flex gap-1 p-1 bg-black/30 backdrop-blur rounded-full w-fit border border-white/10 self-center lg:self-start">
-               <button onClick={() => setActiveTab('image')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === 'image' ? 'bg-white/10 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>{t.viewImage}</button>
-               <button onClick={() => setActiveTab('compare')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === 'compare' ? 'bg-studio-neon/20 text-studio-neon shadow-lg' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewCompare}</button>
-               <button onClick={() => setActiveTab('video')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === 'video' ? 'bg-studio-purple/20 text-studio-purple shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}>{t.viewVideo}</button>
-               <button onClick={() => setActiveTab('edit')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === 'edit' ? 'bg-studio-gold/20 text-studio-gold shadow-lg' : 'text-gray-500 hover:text-gray-300'}`} disabled={!resultImage}>{t.viewEdit}</button>
+          <div className="flex-1 flex flex-col gap-4 order-1 lg:order-2">
+            <div className="flex gap-2 p-1 bg-black/30 rounded-full w-fit border border-white/10">
+               <button onClick={() => setActiveTab('image')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase transition-all ${activeTab === 'image' ? 'bg-white/10 text-white' : 'text-gray-500'}`}>{t.viewImage}</button>
+               <button onClick={() => setActiveTab('compare')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase transition-all ${activeTab === 'compare' ? 'bg-studio-neon/20 text-studio-neon' : 'text-gray-500'}`} disabled={!resultImage}>{t.viewCompare}</button>
+               <button onClick={() => setActiveTab('video')} className={`px-6 py-2 rounded-full text-xs font-bold uppercase transition-all ${activeTab === 'video' ? 'bg-studio-purple/20 text-studio-purple' : 'text-gray-500'}`} disabled={!resultImage}>{t.viewVideo}</button>
             </div>
 
-            <div className="flex-1 relative rounded-[2.5rem] overflow-hidden bg-black/40 border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] backdrop-blur-sm group/viewport flex flex-col min-h-[400px]">
-               
-               <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
+            <div className="flex-1 relative rounded-[3rem] overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center min-h-[500px] shadow-glass">
+               {status.isLoading ? (
+                  <div className="text-center space-y-4">
+                     <div className="w-16 h-16 border-t-2 border-studio-neon rounded-full animate-spin mx-auto"></div>
+                     <p className="text-studio-neon text-xs font-mono uppercase animate-pulse">{t[LOADING_MESSAGES[loadingMessageIndex]]}</p>
+                  </div>
+               ) : resultImage && activeTab === 'image' ? (
+                  <img src={resultImage} onLoad={() => setImageLoaded(true)} className={`max-h-[85vh] object-contain rounded-2xl transition-all duration-300 ease-out cursor-zoom-in ${imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'} hover:scale-[1.02] hover:shadow-studio-neon/30`} />
+               ) : videoResult && activeTab === 'video' ? (
+                  <video src={videoResult} controls autoPlay loop className="max-h-[85vh] rounded-2xl" />
+               ) : activeTab === 'compare' && resultImage ? (
+                  <ComparisonView original={selectedImage!} result={resultImage} />
+               ) : (
+                  <div className="text-center opacity-30 flex flex-col items-center gap-4">
+                     <div className="w-20 h-20 border-2 border-dashed border-white/30 rounded-full flex items-center justify-center"><svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
+                     <p className="text-sm font-light uppercase tracking-widest">{t.noResultDesc}</p>
+                  </div>
+               )}
+            </div>
 
-               <div className="flex-1 flex items-center justify-center p-6 overflow-hidden relative z-10">
-                  {status.isLoading ? (
-                     <div className="text-center space-y-8 animate-zoom-in">
-                        <div className="relative w-28 h-28 mx-auto">
-                           <div className="absolute inset-0 border-t-2 border-studio-neon rounded-full animate-spin"></div>
-                           <div className="absolute inset-2 border-r-2 border-studio-purple rounded-full animate-spin-slow"></div>
-                           <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-14 h-14 bg-studio-neon/10 rounded-full animate-pulse blur-sm"></div>
-                              <img src={LOGO_URL} className="w-10 h-10 object-contain absolute opacity-40" />
-                           </div>
-                        </div>
-                        <div>
-                           <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase">{t.processing}</h2>
-                           <p className="text-studio-neon text-xs mt-3 font-mono tracking-widest uppercase animate-pulse">{appMode === 'faceswap' ? t.processingSwap : t[LOADING_MESSAGES[loadingMessageIndex]]}</p>
-                        </div>
-                     </div>
-                  ) : status.error ? (
-                    <div className="flex flex-col items-center justify-center max-w-md text-center p-10 bg-black/60 border border-red-500/30 rounded-3xl backdrop-blur-2xl animate-zoom-in shadow-2xl">
-                        <div className="w-20 h-20 mb-6 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-red-500">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-2xl font-black text-white mb-3 tracking-tighter">{t.errorTitle}</h3>
-                        <p className="text-red-200/70 text-sm leading-relaxed mb-8">{getErrorMessage(status.error)}</p>
-                        <Button variant="danger" onClick={() => setStatus({isLoading: false, error: null})} className="w-full">
-                            {t.tryAgain}
-                        </Button>
-                    </div>
-                  ) : activeTab === 'compare' && selectedImage && resultImage ? (
-                     <ComparisonView original={selectedImage} result={resultImage} />
-                  ) : activeTab === 'edit' && resultImage ? (
-                     <ImageEditor 
-                        imageSrc={resultImage} 
-                        onSave={(newImg) => { setResultImage(newImg); setActiveTab('image'); }} 
-                        language={language}
-                     />
-                  ) : activeTab === 'image' && resultImage ? (
-                    <div className="relative group/image">
-                       <img 
-                          src={resultImage} 
-                          onLoad={() => setImageLoaded(true)}
-                          className={`
-                            max-h-[80vh] max-w-full object-contain rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/5 cursor-zoom-in 
-                            transition-all duration-300 ease-cinematic
-                            ${imageLoaded ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.95] translate-y-8'}
-                            hover:scale-[1.03] hover:shadow-studio-neon/40 hover:border-studio-neon/30
-                          `} 
-                       />
-                       <div className="absolute inset-0 rounded-2xl pointer-events-none border border-studio-neon/0 group-hover/image:border-studio-neon/20 transition-all duration-500"></div>
-                    </div>
-                  ) : activeTab === 'video' && videoResult ? (
-                    <video src={videoResult} controls autoPlay loop className="max-h-[80vh] max-w-full rounded-2xl shadow-2xl border border-white/10" />
-                  ) : (
-                    <div className="text-center opacity-40 animate-pulse flex flex-col items-center gap-6">
-                       <div className="w-24 h-24 border-2 border-dashed border-studio-neon/40 rounded-full flex items-center justify-center shadow-[inset_0_0_20px_rgba(0,240,255,0.1)]">
-                          <svg className="w-10 h-10 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                       </div>
-                       <div className="space-y-2">
-                          <p className="text-lg font-black tracking-widest uppercase">{t.noResult}</p>
-                          <p className="text-sm font-light tracking-widest opacity-60">{t.noResultDesc}</p>
-                       </div>
-                    </div>
-                  )}
+            {resultImage && !status.isLoading && (
+               <div className="flex gap-4">
+                  <Button variant="primary" onClick={() => handleDownload(activeTab === 'video' ? videoResult! : resultImage!, 'Result')} className="flex-1 h-14 bg-white text-black">{t.download}</Button>
+                  <Button variant="secondary" onClick={handleAnimate} className="flex-1 h-14 border-studio-purple/30 text-studio-purple hover:bg-studio-purple/10">{t.animate}</Button>
                </div>
-            </div>
-
-            {resultImage && !status.error && activeTab !== 'edit' && (
-              <div className="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 flex items-center justify-between animate-fade-in-up shadow-glass">
-                 <div className="flex gap-3">
-                    <Button 
-                      variant="primary" 
-                      onClick={() => handleDownload(activeTab === 'video' ? videoResult! : resultImage!, activeTab === 'video' ? 'Video' : 'Portrait')}
-                      className="h-14 px-8 bg-white text-black hover:bg-studio-neon hover:text-black border-none shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300"
-                    >
-                       <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                       {activeTab === 'video' ? t.downloadVideo : t.download}
-                    </Button>
-                 </div>
-                 {activeTab === 'image' && (
-                   <Button variant="secondary" onClick={handleAnimate} className="h-14 px-6 text-[10px] hidden sm:flex border-studio-purple/30 hover:border-studio-purple text-studio-purple hover:bg-studio-purple/10">
-                      <svg className="w-5 h-5 mr-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      {t.animate}
-                   </Button>
-                 )}
-              </div>
             )}
-
-            {resultImage && activeTab === 'image' && !status.error && (
-              <div className="h-[220px] border border-white/10 rounded-2xl bg-black/40 backdrop-blur-xl overflow-hidden shadow-glass animate-fade-in-up animation-delay-200">
-                 <ChatInterface 
-                   messages={chatMessages} 
-                   onSendMessage={handleSendMessage} 
-                   isLoading={status.isLoading} 
-                   language={language}
-                   disabled={false}
-                 />
-              </div>
-            )}
-
           </div>
         </main>
       </div>
