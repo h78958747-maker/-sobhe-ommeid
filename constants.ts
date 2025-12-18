@@ -1,18 +1,19 @@
 
 import { QualityMode, LightingIntensity, ColorGradingStyle, PromptSuggestion } from "./types";
 
-export const DEFAULT_PROMPT = `Cinema style masterpiece. Cinematic lighting, ultra-realistic textures, professional movie set aesthetic, shallow depth of field, anamorphic lens flares, high dynamic range, stunning atmosphere, extremely detailed portrait, high-end Hollywood production quality, 8k resolution.`;
+// The ultimate Cinema transformation prompt
+export const DEFAULT_PROMPT = `Cinematic masterpiece, Hollywood movie still, 35mm anamorphic lens, shallow depth of field, professional color grading, dramatic chiaroscuro lighting, high dynamic range, hyper-realistic skin textures, film grain, atmospheric smoke, extremely detailed, 8k resolution, award-winning cinematography.`;
 
 export const QUALITY_MODIFIERS: Record<QualityMode, string> = {
   standard: "",
-  high: ", photorealistic, intricate details, sharp focus, masterpiece quality"
+  high: ", ultra-sharp focus, masterpiece quality, photorealistic"
 };
 
 export const LIGHTING_STYLES: Record<LightingIntensity, string> = {
-  soft: "diffused studio lighting, soft glow, gentle rim light",
-  cinematic: "dramatic Hollywood cinematic lighting, volumetric fog, three-point lighting setup",
-  dramatic: "high-contrast chiaroscuro lighting, deep mysterious shadows, moody noir lighting",
-  intense: "vibrant backlight, high intensity dramatic studio lights, sharp highlights"
+  soft: "soft wrap-around studio lighting, ethereal glow",
+  cinematic: "classic three-point Hollywood lighting, rim light, volumetric lighting",
+  dramatic: "high-contrast noir lighting, deep shadows, moody atmosphere",
+  intense: "vibrant backlight, sharp highlights, high-energy studio lights"
 };
 
 export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
@@ -24,13 +25,13 @@ export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
 
 export const COLOR_GRADING_STYLES: Record<ColorGradingStyle, string> = {
   none: "",
-  warm_vintage: "warm cinematic grading, golden hour tones, retro film look",
-  cool_noir: "cool blue cinematic grading, high contrast, moody film noir tones",
-  teal_orange: "classic teal and orange hollywood color grading, high saturation contrast",
-  classic_bw: "masterpiece black and white cinematic photography, rich silver tones, timeless movie look"
+  warm_vintage: "warm vintage movie grading, sepia highlights",
+  cool_noir: "cool blue cinematic grading, high contrast, moody noir",
+  teal_orange: "teal and orange blockbuster color grade, cinematic look",
+  classic_bw: "high-end black and white cinematography, rich film grain"
 };
 
-export const MODEL_NAME = 'gemini-2.5-flash-image';
+export const MODEL_NAME = 'gemini-3-pro-image-preview';
 
 export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
   { 
@@ -39,21 +40,10 @@ export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
     prompt: 'Cinema style, blockbuster movie aesthetic, high-end cinematography, dramatic lighting', 
     color: 'from-gray-900 to-black',
     icon: 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918'
-  },
-  { 
-    id: 'cyberpunk', 
-    labelKey: 'styleCyberpunk', 
-    prompt: 'Blade Runner 2049 cinema style, neon lights, foggy futuristic night, rainy cinematic reflections, teal and pink highlights', 
-    color: 'from-pink-600 to-blue-600',
-    icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z'
-  },
+  }
 ];
 
-export const CINEMATIC_KEYWORDS = [
-  "anamorphic", "bokeh", "panavision", "hollywood", "technicolor", "imax", "35mm film",
-  "rim lighting", "lens flare", "dynamic range", "studio quality", "color grade",
-  "8k resolution", "hyper-realistic", "masterpiece", "cinematography"
-];
+export const CINEMATIC_KEYWORDS = ["cinema", "35mm", "anamorphic", "studio lighting", "color grade"];
 
 export const LOADING_MESSAGES = [
   "loadAnalyzing",
