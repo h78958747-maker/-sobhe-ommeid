@@ -6,7 +6,7 @@ import { ComparisonView } from './components/ComparisonView';
 import { CameraCapture } from './components/CameraCapture';
 import { generateEditedImage, generateFaceSwap, analyzeImage } from './services/geminiService';
 import { saveHistoryItem } from './services/storageService';
-import { DEFAULT_PROMPT, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LIGHTING_ICONS } from './constants';
+import { DEFAULT_PROMPT, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LIGHTING_ICONS, QUALITY_MODIFIERS } from './constants';
 import { ProcessingState, AspectRatio, HistoryItem, Language, LightingIntensity, ColorGradingStyle, AppMode, BatchItem, Theme } from './types';
 import { translations } from './translations';
 import { LivingBackground } from './components/LivingBackground';
@@ -63,7 +63,9 @@ const App: React.FC = () => {
     
     try {
       let result = '';
-      const prompt = `${DEFAULT_PROMPT} ${LIGHTING_STYLES[lighting]}. ${COLOR_GRADING_STYLES[colorGrading]}. ${description}`;
+      // Build the Ultimate Cinema Prompt
+      const qualityMod = QUALITY_MODIFIERS.high;
+      const prompt = `${DEFAULT_PROMPT} ${LIGHTING_STYLES[lighting]}. ${COLOR_GRADING_STYLES[colorGrading]}. ${description} ${qualityMod}`;
 
       if (mode === 'portrait' || mode === 'batch') {
         result = await generateEditedImage(selectedImage!, prompt, aspectRatio, detectedDimensions ? { width: detectedDimensions.w, height: detectedDimensions.h } : undefined);
@@ -89,7 +91,9 @@ const App: React.FC = () => {
       await saveHistoryItem(historyItem);
 
     } catch (err: any) {
-      setProcessing(prev => ({ ...prev, error: err.message || 'errorServer' }));
+      const errorKey = err.message;
+      const displayError = t[errorKey] || t.ERR_GENERIC;
+      setProcessing(prev => ({ ...prev, error: displayError }));
     } finally {
       setProcessing(prev => ({ ...prev, isLoading: false }));
     }
@@ -108,7 +112,8 @@ const App: React.FC = () => {
     const results: BatchItem[] = batchItems.map(item => ({ ...item, status: 'pending' }));
     setBatchItems([...results]);
 
-    const prompt = `${DEFAULT_PROMPT} ${LIGHTING_STYLES[lighting]}. ${COLOR_GRADING_STYLES[colorGrading]}. ${description}`;
+    const qualityMod = QUALITY_MODIFIERS.high;
+    const prompt = `${DEFAULT_PROMPT} ${LIGHTING_STYLES[lighting]}. ${COLOR_GRADING_STYLES[colorGrading]}. ${description} ${qualityMod}`;
 
     for (let i = 0; i < results.length; i++) {
       setProcessing(prev => ({ ...prev, statusText: `${t.loadLighting} (${i+1}/${results.length})`, batchCurrent: i + 1 }));
@@ -134,7 +139,8 @@ const App: React.FC = () => {
         await saveHistoryItem(historyItem);
       } catch (err: any) {
         results[i].status = 'error';
-        results[i].error = err.message;
+        const errorKey = err.message;
+        results[i].error = t[errorKey] || t.ERR_GENERIC;
       }
       setBatchItems([...results]);
     }
@@ -169,30 +175,25 @@ const App: React.FC = () => {
   // Keyboard Shortcuts Handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if user is typing in an input or textarea
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
-      // Ctrl/Cmd + Enter to Generate
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (step === 'setup') handleGenerate();
         if (step === 'cinema' || step === 'batch-results') reset();
       }
 
-      // H to toggle History
       if (e.key.toLowerCase() === 'h') {
         e.preventDefault();
         setShowHistory(prev => !prev);
       }
 
-      // T to toggle Theme
       if (e.key.toLowerCase() === 't') {
         e.preventDefault();
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
       }
 
-      // Escape to close things
       if (e.key === 'Escape') {
         if (showHistory) setShowHistory(false);
         else if (showCamera) setShowCamera(null);
@@ -287,6 +288,13 @@ const App: React.FC = () => {
       </header>
 
       <main className="relative z-10 max-w-7xl mx-auto p-6 md:p-12">
+        {processing.error && (
+           <div className="mb-10 p-6 bg-red-500/10 border border-red-500/30 rounded-[2rem] text-center animate-bounce shadow-xl shadow-red-500/5">
+              <p className="text-red-500 font-black text-sm uppercase tracking-widest">{processing.error}</p>
+              <button onClick={() => setProcessing(p => ({ ...p, error: null }))} className="mt-4 text-[9px] text-gray-500 hover:text-red-500 uppercase font-black transition-colors">{t.cancel}</button>
+           </div>
+        )}
+
         {step === 'setup' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-reveal">
             <div className="space-y-10">
@@ -337,7 +345,7 @@ const App: React.FC = () => {
               <div className="space-y-4">
                  <h4 className="text-[10px] uppercase font-black text-gray-500 tracking-[0.3em] pl-2 flex items-center gap-2">
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16m-7 6h7" strokeWidth={2} /></svg>
-                    {language === 'fa' ? 'کتابخانه استایل‌ها' : 'Style Library'}
+                    {language === 'fa' ? 'کتابخانه استایل‌های سینمایی' : 'Cinema Style Library'}
                  </h4>
                  <div className="grid grid-cols-3 gap-3">
                     {PROMPT_SUGGESTIONS.map(s => (
@@ -503,7 +511,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-4 p-3 bg-black/60 backdrop-blur-3xl rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-2xl scale-90 md:scale-100">
                       <Button variant="secondary" className="px-10 h-16 rounded-[1.5rem] hover:scale-105 active:scale-95" onClick={reset}><svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>{t.newGeneration}</Button>
-                      <Button variant="secondary" className="px-10 h-16 rounded-[1.5rem] hover:scale-105 active:scale-95" onClick={() => setShowEditor(true)}><svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 12H13.5" /></svg>{t.viewEdit}</Button>
+                      <Button variant="secondary" className="px-10 h-16 rounded-[1.5rem] hover:scale-105 active:scale-95" onClick={() => setShowEditor(true)}><svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 11-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 12H13.5" /></svg>{t.viewEdit}</Button>
                       <a href={resultImage!} download="studio_masterpiece.png"><Button variant="gold" className="px-10 h-16 rounded-[1.5rem] hover:scale-105 active:scale-95 shadow-neon-blue/20"><svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>{t.download}</Button></a>
                   </div>
                 </div>

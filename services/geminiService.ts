@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { MODEL_NAME } from "../constants";
-import { AspectRatio } from "../types";
+import { AspectRatio, ImageAdjustments } from "../types";
 
 const getGenAI = () => {
   const apiKey = process.env.API_KEY;
@@ -59,10 +59,33 @@ export const analyzeImage = async (base64Image: string): Promise<string> => {
   }
 };
 
-export const getPromptSuggestions = async (currentPrompt: string, base64Image?: string | null): Promise<string[]> => {
+export const getPromptSuggestions = async (
+  currentPrompt: string, 
+  base64Image?: string | null,
+  adjustments?: ImageAdjustments
+): Promise<string[]> => {
   const ai = getGenAI();
   try {
-    const parts: any[] = [{ text: `Act as a senior cinematographer. Based on the current prompt: "${currentPrompt}", suggest 8 professional cinematic keywords or short phrases (like "anamorphic lens", "volumetric fog", "high-key lighting") that would enhance the visual quality. Return ONLY a JSON array of strings.` }];
+    let adjustmentContext = "";
+    if (adjustments) {
+      adjustmentContext = `The user has manually adjusted the image with: 
+      Brightness: ${adjustments.brightness}%, 
+      Contrast: ${adjustments.contrast}%, 
+      Saturation: ${adjustments.saturation}%, 
+      Sepia: ${adjustments.sepia}%, 
+      Blur: ${adjustments.blur}px.`;
+    }
+
+    const parts: any[] = [
+      { text: `Act as a world-class senior cinematographer and AI prompt engineer. 
+      Based on the current prompt: "${currentPrompt}" ${adjustmentContext ? `and these visual edits: ${adjustmentContext}` : ""}, 
+      suggest 8 professional cinematic keywords or short phrases that would enhance the visual quality, realism, and artistic impact.
+      
+      If adjustments are provided, try to suggest terms that mirror the intent (e.g., if saturation is high, suggest "vibrant", "technicolor", "neon").
+      If an image is provided, analyze its content to ensure suggestions are relevant (e.g., if it's a forest, suggest "volumetric forest light", "mossy textures").
+      
+      Return ONLY a JSON array of strings.` }
+    ];
     
     if (base64Image) {
       parts.push({ inlineData: { mimeType: getMimeType(base64Image), data: cleanBase64(base64Image) } });
@@ -86,6 +109,22 @@ export const getPromptSuggestions = async (currentPrompt: string, base64Image?: 
     console.error("Suggestion Error:", error);
     return ["Anamorphic", "Moody Lighting", "8k Resolution", "Hyper-realistic", "Cinematic"];
   }
+};
+
+const handleGenAIError = (error: any) => {
+  const message = error.message || "";
+  console.error("GenAI Detailed Error:", error);
+
+  if (message.includes("429") || message.toLowerCase().includes("quota") || message.toLowerCase().includes("rate limit")) {
+    return "ERR_RATE_LIMIT";
+  }
+  if (message.includes("403") || message.toLowerCase().includes("permission") || message.toLowerCase().includes("api key")) {
+    return "ERR_AUTH";
+  }
+  if (message.toLowerCase().includes("safety") || message.toLowerCase().includes("blocked")) {
+    return "ERR_SAFETY";
+  }
+  return "ERR_GENERIC";
 };
 
 export const generateEditedImage = async (
@@ -121,7 +160,17 @@ export const generateEditedImage = async (
       config
     });
 
-    const parts = response.candidates?.[0]?.content?.parts;
+    const candidate = response.candidates?.[0];
+    
+    if (!candidate) {
+      throw new Error("No candidates returned.");
+    }
+
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error("SAFETY_BLOCKED");
+    }
+
+    const parts = candidate.content?.parts;
     if (parts) {
       for (const part of parts) {
         if (part.inlineData?.data) {
@@ -130,13 +179,10 @@ export const generateEditedImage = async (
       }
     }
     
-    throw new Error("errorUnknown");
+    throw new Error("No image data in response.");
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    if (error.message?.includes("API_KEY_MISSING")) {
-      throw new Error("API_KEY_MISSING");
-    }
-    throw new Error("errorServer");
+    if (error.message === "SAFETY_BLOCKED") throw new Error("ERR_SAFETY");
+    throw new Error(handleGenAIError(error));
   }
 };
 
@@ -158,14 +204,22 @@ export const generateFaceSwap = async (
       },
     });
 
-    const parts = response.candidates?.[0]?.content?.parts;
+    const candidate = response.candidates?.[0];
+    if (!candidate) throw new Error("No response from model.");
+    
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error("SAFETY_BLOCKED");
+    }
+
+    const parts = candidate.content?.parts;
     if (parts) {
       for (const part of parts) {
         if (part.inlineData?.data) return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
       }
     }
-    throw new Error("errorUnknown");
+    throw new Error("No image data in response.");
   } catch (error: any) {
-    throw error;
+    if (error.message === "SAFETY_BLOCKED") throw new Error("ERR_SAFETY");
+    throw new Error(handleGenAIError(error));
   }
 };

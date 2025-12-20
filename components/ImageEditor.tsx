@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from './Button';
 import { translations } from '../translations';
 import { Language, ImageAdjustments } from '../types';
+import { PromptAssistant } from './PromptAssistant';
 
 interface ImageEditorProps {
   imageSrc: string;
@@ -16,22 +17,20 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   language
 }) => {
   const t = translations[language];
-  const [adjustments, setAdjustments] = useState<ImageAdjustments>({
+  
+  const INITIAL_ADJUSTMENTS: ImageAdjustments = {
     brightness: 100,
     contrast: 100,
     saturation: 100,
     sepia: 0,
     blur: 0
-  });
+  };
 
-  const [history, setHistory] = useState<ImageAdjustments[]>([{
-    brightness: 100,
-    contrast: 100,
-    saturation: 100,
-    sepia: 0,
-    blur: 0
-  }]);
+  const [adjustments, setAdjustments] = useState<ImageAdjustments>(INITIAL_ADJUSTMENTS);
+
+  const [history, setHistory] = useState<ImageAdjustments[]>([INITIAL_ADJUSTMENTS]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [showAssistant, setShowAssistant] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -79,9 +78,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   }, [historyIndex, history]);
 
   const handleReset = useCallback(() => {
-    const initial = { brightness: 100, contrast: 100, saturation: 100, sepia: 0, blur: 0 };
-    setAdjustments(initial);
-    pushHistory(initial);
+    setAdjustments(INITIAL_ADJUSTMENTS);
+    pushHistory(INITIAL_ADJUSTMENTS);
   }, [pushHistory]);
 
   const handleApply = () => {
@@ -112,17 +110,17 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   // Editor Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Z for Undo
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
       }
-      // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y for Redo
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         handleRedo();
       }
-      // R to Reset
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
         handleReset();
@@ -161,8 +159,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   );
 
   return (
-    <div className="flex flex-col h-full animate-fade-in gap-6">
-       <div className="flex-1 relative bg-black/40 rounded-[3rem] overflow-hidden mb-2 border border-white/5 shadow-glass group/editor">
+    <div className="flex flex-col h-full animate-fade-in gap-6 pb-12">
+       <div className="flex-1 relative bg-black/40 rounded-[3rem] overflow-hidden mb-2 border border-white/5 shadow-glass group/editor min-h-[400px]">
           <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none"></div>
           
           <div className="absolute top-8 left-8 flex gap-3 z-20">
@@ -172,7 +170,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                className="p-3 bg-black/60 rounded-xl border border-white/10 text-white disabled:opacity-20 hover:bg-studio-neon hover:text-black transition-all shadow-lg group relative"
                title={t.undo}
              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" strokeWidth={2} /></svg>
                 <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[8px] bg-black text-white px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">CTRL+Z</span>
              </button>
              <button 
@@ -181,21 +179,50 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                className="p-3 bg-black/60 rounded-xl border border-white/10 text-white disabled:opacity-20 hover:bg-studio-neon hover:text-black transition-all shadow-lg group relative"
                title={t.redo}
              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeWidth={2} /></svg>
                 <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[8px] bg-black text-white px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">CTRL+Y</span>
              </button>
           </div>
 
-          <img 
-            src={imageSrc} 
-            alt="Preview"
-            className="w-full h-full object-contain transition-all duration-500 ease-cinematic"
-            style={{ filter: filterString }}
-          />
+          <div className="absolute top-8 right-8 z-20">
+             <button 
+               onClick={() => setShowAssistant(!showAssistant)}
+               className={`p-3 rounded-xl border backdrop-blur-xl transition-all shadow-lg group relative flex items-center gap-2 ${showAssistant ? 'bg-studio-neon text-black border-studio-neon' : 'bg-black/60 text-studio-neon border-studio-neon/30 hover:bg-studio-neon/10'}`}
+             >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">{t.assistantTitle}</span>
+             </button>
+          </div>
+
+          <div className="w-full h-full flex items-center justify-center p-8">
+            <img 
+              src={imageSrc} 
+              alt="Preview"
+              className="max-w-full max-h-full object-contain transition-all duration-300 shadow-2xl rounded-lg"
+              style={{ filter: filterString }}
+            />
+          </div>
           <canvas ref={canvasRef} className="hidden" />
+
+          {showAssistant && (
+            <div className="absolute bottom-8 left-8 right-8 z-30 bg-black/80 backdrop-blur-3xl p-6 rounded-[2rem] border border-studio-neon/20 shadow-neon-blue/20 animate-slide-up">
+               <PromptAssistant 
+                 currentPrompt="" // Use adjustments as context primarily
+                 imageContext={imageSrc}
+                 adjustments={adjustments}
+                 onSelectSuggestion={(s) => {
+                   // In editor mode, we just copy the suggestion or show a Toast (future improvement)
+                   // For now, let's keep it informative.
+                   console.log("Cinematic Suggestion based on edits:", s);
+                   navigator.clipboard.writeText(s);
+                 }}
+                 language={language}
+               />
+            </div>
+          )}
        </div>
 
-       <div className="bg-white/5 backdrop-blur-3xl p-8 rounded-[3rem] border border-white/10 space-y-8 shadow-glass">
+       <div className="bg-white/5 backdrop-blur-3xl p-8 rounded-[3.5rem] border border-white/10 space-y-8 shadow-glass animate-reveal">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
              <Slider 
                 label={t.editBrightness} 
@@ -239,12 +266,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
              />
           </div>
 
-          <div className="flex gap-6 pt-4 border-t border-white/5">
-             <Button variant="secondary" onClick={handleReset} className="flex-1 h-16 rounded-2xl group relative">
+          <div className="flex gap-6 pt-6 border-t border-white/5">
+             <Button variant="secondary" onClick={handleReset} className="flex-1 h-16 rounded-2xl group relative hover:border-red-500/30">
+               <svg className="w-5 h-5 mr-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                {t.resetEdits}
                <span className="ml-2 opacity-30 text-[8px] group-hover:opacity-100 transition-opacity">(R)</span>
              </Button>
              <Button variant="gold" onClick={handleApply} className="flex-1 h-16 rounded-2xl">
+               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                {t.applyEdits}
              </Button>
           </div>
