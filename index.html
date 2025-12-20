@@ -37,12 +37,12 @@
               'reveal': 'reveal 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-left': 'slideInLeft 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-right': 'slideInRight 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
-              'logo-cinema': 'logo-cinema 8s ease-in-out infinite',
+              'logo-cinema': 'logo-cinema 6s ease-in-out infinite',
               'float': 'float 8s ease-in-out infinite',
               'pulse-neon': 'pulse-neon 3s ease-in-out infinite',
               'shimmer-fast': 'shimmer 2s infinite linear',
               'pulse-subtle': 'pulseSubtle 3s infinite ease-in-out',
-              'draw-svg': 'drawSvg 0.6s ease-out forwards',
+              'draw-svg': 'drawSvg 0.8s ease-out forwards',
             },
             keyframes: {
               reveal: {
@@ -58,16 +58,12 @@
                 '100%': { opacity: '1', transform: 'translateX(0) skewX(0)' }
               },
               'logo-cinema': {
-                '0%, 100%': { transform: 'scale(1) rotate(0deg) translateY(0)', filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.2))' },
-                '50%': { transform: 'scale(1.05) rotate(2deg) translateY(-5px)', filter: 'drop-shadow(0 0 25px rgba(0, 240, 255, 0.5))' }
+                '0%, 100%': { transform: 'scale(1) rotate(0deg) translateY(0)', filter: 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.2)) opacity(0.9)' },
+                '50%': { transform: 'scale(1.05) rotate(1deg) translateY(-3px)', filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 0.5)) opacity(1)' }
               },
               shimmer: {
                 '0%': { transform: 'translateX(-150%) skewX(-20deg)' },
                 '100%': { transform: 'translateX(150%) skewX(-20deg)' }
-              },
-              float: {
-                '0%, 100%': { transform: 'translateY(0) rotate(0)' },
-                '50%': { transform: 'translateY(-20px) rotate(5deg)' }
               },
               drawSvg: {
                 '0%': { 'stroke-dasharray': '0 100', opacity: '0' },
@@ -109,7 +105,7 @@
       .animate-draw-svg path {
         stroke-dasharray: 1000;
         stroke-dashoffset: 1000;
-        animation: drawPath 2s ease-out forwards;
+        animation: drawPath 1.5s ease-out forwards;
       }
 
       @keyframes drawPath {
@@ -118,6 +114,28 @@
       
       input[type="range"] {
         accent-color: #00f0ff;
+      }
+
+      /* Hover Ripple Effect for Buttons */
+      .btn-ripple {
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-ripple::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s ease-out, height 0.6s ease-out;
+      }
+      .btn-ripple:hover::after {
+        width: 300%;
+        height: 300%;
       }
     </style>
   <script type="importmap">
