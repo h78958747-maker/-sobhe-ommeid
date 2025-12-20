@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cinematic Crystal Studio | Studio Wizard</title>
+    <title>موسسه صبح امید | Cinematic Studio</title>
     <!-- Vazirmatn Font for Persian -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     
@@ -29,6 +29,7 @@
               'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
               'glass-heavy': '0 20px 80px 0 rgba(0, 240, 255, 0.15)',
               'inner-glow': 'inset 0 0 15px rgba(0, 240, 255, 0.2)',
+              'inner-glow-strong': 'inset 0 0 25px rgba(0, 240, 255, 0.4)',
             },
             fontFamily: {
               sans: ['Vazirmatn', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -37,12 +38,13 @@
               'reveal': 'reveal 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-left': 'slideInLeft 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-right': 'slideInRight 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
-              'logo-cinema': 'logo-cinema 6s ease-in-out infinite',
+              'logo-cinema': 'logo-cinema 5s ease-in-out infinite',
               'float': 'float 8s ease-in-out infinite',
               'pulse-neon': 'pulse-neon 3s ease-in-out infinite',
               'shimmer-fast': 'shimmer 2s infinite linear',
               'pulse-subtle': 'pulseSubtle 3s infinite ease-in-out',
               'draw-svg': 'drawSvg 0.8s ease-out forwards',
+              'icon-flourish': 'iconFlourish 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
             },
             keyframes: {
               reveal: {
@@ -58,8 +60,8 @@
                 '100%': { opacity: '1', transform: 'translateX(0) skewX(0)' }
               },
               'logo-cinema': {
-                '0%, 100%': { transform: 'scale(1) rotate(0deg) translateY(0)', filter: 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.2)) opacity(0.9)' },
-                '50%': { transform: 'scale(1.05) rotate(1deg) translateY(-3px)', filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 0.5)) opacity(1)' }
+                '0%, 100%': { transform: 'scale(1) rotate(0deg)', filter: 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.2))' },
+                '50%': { transform: 'scale(1.08) rotate(1.5deg)', filter: 'drop-shadow(0 0 25px rgba(0, 240, 255, 0.6))' }
               },
               shimmer: {
                 '0%': { transform: 'translateX(-150%) skewX(-20deg)' },
@@ -68,6 +70,10 @@
               drawSvg: {
                 '0%': { 'stroke-dasharray': '0 100', opacity: '0' },
                 '100%': { 'stroke-dasharray': '100 0', opacity: '1' }
+              },
+              iconFlourish: {
+                '0%': { transform: 'scale(1) rotate(0deg)', opacity: '0.7' },
+                '100%': { transform: 'scale(1.15) rotate(8deg)', opacity: '1' }
               }
             }
           }
@@ -116,7 +122,6 @@
         accent-color: #00f0ff;
       }
 
-      /* Hover Ripple Effect for Buttons */
       .btn-ripple {
         position: relative;
         overflow: hidden;
@@ -136,6 +141,12 @@
       .btn-ripple:hover::after {
         width: 300%;
         height: 300%;
+      }
+
+      /* Refined Icon Interaction */
+      .icon-container:hover svg {
+        animation: iconFlourish 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        color: #00f0ff;
       }
     </style>
   <script type="importmap">

@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { BatchItem, Language } from '../types';
 import { PromptAssistant } from './PromptAssistant';
 import { playUpload } from '../services/audioService';
+import { translations } from '../translations';
 
 interface ImageUploadProps {
   onImageSelected: (base64: string | string[]) => void;
@@ -41,6 +42,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const t = translations[language];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
@@ -55,10 +57,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const handleFiles = (files: FileList) => {
-    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, allowMultiple ? 5 : 1);
+    // Increased limit to 20 images
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, allowMultiple ? 20 : 1);
     
     if (validFiles.length > 0) {
-      playUpload(); // Trigger upload sound feedback
+      playUpload(); 
     }
 
     if (validFiles.length > 1) {
@@ -143,7 +146,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             <div className="relative z-10 text-center space-y-2 px-6">
                 <p className="text-xl font-black tracking-tighter uppercase">{title || "Upload Reference"}</p>
                 <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
-                  {allowMultiple ? (language === 'fa' ? 'انتخاب تا ۵ تصویر همزمان' : "Select up to 5 images") : (language === 'fa' ? 'بکشید و رها کنید یا کلیک کنید' : "Drag & drop or click to browse")}
+                  {allowMultiple ? t.batchLimitInfo : (language === 'fa' ? 'بکشید و رها کنید یا کلیک کنید' : "Drag & drop or click to browse")}
                 </p>
             </div>
             </div>
@@ -163,7 +166,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       ) : (
         <div className="space-y-6">
           {batchImages.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {batchImages.map((img) => (
                 <div key={img.id} className="relative aspect-square rounded-[2rem] overflow-hidden border border-black/10 dark:border-white/10 group shadow-lg hover:scale-105 transition-transform">
                   <img src={img.original} className="w-full h-full object-cover" alt="Batch item" />
@@ -173,12 +176,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                   </div>
                 </div>
               ))}
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-[2rem] border-2 border-dashed border-black/10 dark:border-white/10 flex items-center justify-center cursor-pointer hover:border-studio-neon hover:bg-studio-neon/5 transition-all active:scale-95"
-              >
-                <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" strokeWidth={2} /></svg>
-              </div>
+              {batchImages.length < 20 && (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-[2rem] border-2 border-dashed border-black/10 dark:border-white/10 flex items-center justify-center cursor-pointer hover:border-studio-neon hover:bg-studio-neon/5 transition-all active:scale-95"
+                >
+                  <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" strokeWidth={2} /></svg>
+                </div>
+              )}
             </div>
           ) : (
             <div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black/60 group h-[450px] animate-reveal">

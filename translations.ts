@@ -7,6 +7,7 @@ export const translations: Record<Language, Record<string, string>> = {
     uploadTitle: "Import Original Photo",
     configTitle: "Professional Studio Settings",
     generate: "Render Cinema Masterpiece (CINEMA)",
+    batchGenerate: "Start Batch Rendering",
     ratioAuto: "Auto (Match Input)",
     aspectRatio: "Framing & Dimensions",
     lightingIntensity: "Artistic Lighting (SOFT)",
@@ -15,6 +16,7 @@ export const translations: Record<Language, Record<string, string>> = {
     newGeneration: "New Photo",
     download: "Export Masterpiece",
     rendering: "Creating Magic...",
+    batchStatus: "Processing {current} of {total}",
     lightSoft: "SOFT",
     lightCinematic: "CINEMATIC",
     lightDramatic: "DRAMATIC",
@@ -45,13 +47,16 @@ export const translations: Record<Language, Record<string, string>> = {
     SUGGEST_RETRY: "Try adjusting the prompt complexity or using a higher contrast lighting style.",
     SUGGEST_SAFETY: "Please refine your description to focus on artistic portraiture and professional aesthetics.",
     TRY_AGAIN: "Attempt Recovery",
-    BACK_TO_STUDIO: "Return to Setup"
+    BACK_TO_STUDIO: "Return to Setup",
+    batchMode: "Batch Mode Enabled",
+    batchLimitInfo: "Select up to 20 images"
   },
   fa: {
     appTitle: "خالق شاهکارهای سینمایی",
     uploadTitle: "ورود تصویر اصلی",
     configTitle: "تنظیمات حرفه‌ای استودیو",
     generate: "رندر شاهکار سینمایی (CINEMA)",
+    batchGenerate: "شروع رندر دسته‌ای",
     ratioAuto: "خودکار (هماهنگ با تصویر ورودی)",
     aspectRatio: "کادربندی و ابعاد",
     lightingIntensity: "نورپردازی هنری و ملایم (SOFT)",
@@ -60,6 +65,7 @@ export const translations: Record<Language, Record<string, string>> = {
     newGeneration: "عکس جدید",
     download: "ذخیره شاهکار",
     rendering: "در حال جادوی سینما...",
+    batchStatus: "در حال پردازش {current} از {total}",
     lightSoft: "SOFT",
     lightCinematic: "CINEMATIC",
     lightDramatic: "DRAMATIC",
@@ -90,6 +96,8 @@ export const translations: Record<Language, Record<string, string>> = {
     SUGGEST_RETRY: "سعی کنید پیچیدگی پرامپت را تنظیم کنید یا از یک سبک نورپردازی با کنتراست بالاتر استفاده کنید.",
     SUGGEST_SAFETY: "لطفاً توضیحات خود را برای تمرکز بر پرتره‌نگاری هنری و زیبایی‌شناسی حرفه‌ای اصلاح کنید.",
     TRY_AGAIN: "تلاش مجدد برای بازیابی",
-    BACK_TO_STUDIO: "بازگشت به تنظیمات"
+    BACK_TO_STUDIO: "بازگشت به تنظیمات",
+    batchMode: "حالت پردازش دسته‌ای فعال",
+    batchLimitInfo: "انتخاب تا ۲۰ تصویر همزمان"
   }
 };

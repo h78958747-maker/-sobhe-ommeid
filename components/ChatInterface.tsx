@@ -43,8 +43,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="flex flex-col h-full bg-transparent overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/20">
-        <h3 className="text-sm font-black uppercase tracking-[0.3em] text-studio-neon flex items-center gap-3 group">
-          <svg className="w-5 h-5 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <h3 className="text-sm font-black uppercase tracking-[0.3em] text-studio-neon flex items-center gap-3 icon-container">
+          <svg className="w-5 h-5 transition-colors duration-300 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           {t.chatTitle}
@@ -59,8 +59,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.length === 0 && (
            <div className="text-center py-20 space-y-6 animate-reveal">
-             <div className="w-20 h-20 bg-studio-neon/5 rounded-full flex items-center justify-center mx-auto border border-studio-neon/10 group">
-                <svg className="w-10 h-10 text-studio-neon/40 transition-all duration-700 group-hover:text-studio-neon group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <div className="w-20 h-20 bg-studio-neon/5 rounded-full flex items-center justify-center mx-auto border border-studio-neon/10 icon-container">
+                <svg className="w-10 h-10 text-studio-neon/40 transition-colors duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
              </div>
