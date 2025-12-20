@@ -1,22 +1,18 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { MODEL_NAME } from "../constants";
-import { AspectRatio, ImageAdjustments } from "../types";
+import { AspectRatio, ImageAdjustments, ChatMessage } from "../types";
 
-const getGenAI = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY_MISSING"); 
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
+// Helper to clean base64 string
 const cleanBase64 = (b64: string) => b64.split(',')[1] || b64;
+
+// Helper to get mime type from base64
 const getMimeType = (b64: string) => {
   const match = b64.match(/^data:(.*);base64,/);
   return match && match[1] ? match[1] : 'image/jpeg';
 };
 
+// Helper to find closest supported aspect ratio for AUTO mode
 const getClosestAspectRatio = (width: number, height: number): AspectRatio => {
   const ratio = width / height;
   const supported: { label: AspectRatio, value: number }[] = [
@@ -40,100 +36,16 @@ const getClosestAspectRatio = (width: number, height: number): AspectRatio => {
   return closest.label;
 };
 
-export const analyzeImage = async (base64Image: string): Promise<string> => {
-  const ai = getGenAI();
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: getMimeType(base64Image), data: cleanBase64(base64Image) } },
-          { text: "Describe this image in detail focusing on the main subject, setting, and lighting for a cinematic transformation prompt. Keep it concise (max 30 words)." },
-        ],
-      },
-    });
-    return response.text || "";
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    return "";
-  }
-};
-
-export const getPromptSuggestions = async (
-  currentPrompt: string, 
-  base64Image?: string | null,
-  adjustments?: ImageAdjustments
-): Promise<string[]> => {
-  const ai = getGenAI();
-  try {
-    let adjustmentContext = "";
-    if (adjustments) {
-      adjustmentContext = `The user has manually adjusted the image with: 
-      Brightness: ${adjustments.brightness}%, 
-      Contrast: ${adjustments.contrast}%, 
-      Saturation: ${adjustments.saturation}%, 
-      Sepia: ${adjustments.sepia}%, 
-      Blur: ${adjustments.blur}px.`;
-    }
-
-    const parts: any[] = [
-      { text: `Act as a world-class senior cinematographer and AI prompt engineer. 
-      Based on the current prompt: "${currentPrompt}" ${adjustmentContext ? `and these visual edits: ${adjustmentContext}` : ""}, 
-      suggest 8 professional cinematic keywords or short phrases that would enhance the visual quality, realism, and artistic impact.
-      
-      If adjustments are provided, try to suggest terms that mirror the intent (e.g., if saturation is high, suggest "vibrant", "technicolor", "neon").
-      If an image is provided, analyze its content to ensure suggestions are relevant (e.g., if it's a forest, suggest "volumetric forest light", "mossy textures").
-      
-      Return ONLY a JSON array of strings.` }
-    ];
-    
-    if (base64Image) {
-      parts.push({ inlineData: { mimeType: getMimeType(base64Image), data: cleanBase64(base64Image) } });
-    }
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
-      }
-    });
-
-    const text = response.text || "[]";
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Suggestion Error:", error);
-    return ["Anamorphic", "Moody Lighting", "8k Resolution", "Hyper-realistic", "Cinematic"];
-  }
-};
-
-const handleGenAIError = (error: any) => {
-  const message = error.message || "";
-  console.error("GenAI Detailed Error:", error);
-
-  if (message.includes("429") || message.toLowerCase().includes("quota") || message.toLowerCase().includes("rate limit")) {
-    return "ERR_RATE_LIMIT";
-  }
-  if (message.includes("403") || message.toLowerCase().includes("permission") || message.toLowerCase().includes("api key")) {
-    return "ERR_AUTH";
-  }
-  if (message.toLowerCase().includes("safety") || message.toLowerCase().includes("blocked")) {
-    return "ERR_SAFETY";
-  }
-  return "ERR_GENERIC";
-};
-
+/**
+ * Generates an edited image using Gemini models.
+ */
 export const generateEditedImage = async (
   base64Image: string,
   prompt: string,
   aspectRatio: AspectRatio = "1:1",
   dimensions?: { width: number, height: number }
 ): Promise<string> => {
-  const ai = getGenAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   let finalRatio: any = aspectRatio;
   if (aspectRatio === 'AUTO' && dimensions) {
@@ -161,14 +73,8 @@ export const generateEditedImage = async (
     });
 
     const candidate = response.candidates?.[0];
-    
-    if (!candidate) {
-      throw new Error("No candidates returned.");
-    }
-
-    if (candidate.finishReason === 'SAFETY') {
-      throw new Error("SAFETY_BLOCKED");
-    }
+    if (!candidate) throw new Error("No candidates returned.");
+    if (candidate.finishReason === 'SAFETY') throw new Error("ERR_SAFETY");
 
     const parts = candidate.content?.parts;
     if (parts) {
@@ -178,48 +84,112 @@ export const generateEditedImage = async (
         }
       }
     }
-    
     throw new Error("No image data in response.");
   } catch (error: any) {
-    if (error.message === "SAFETY_BLOCKED") throw new Error("ERR_SAFETY");
-    throw new Error(handleGenAIError(error));
+    if (error.message?.includes("SAFETY")) throw new Error("ERR_SAFETY");
+    throw error;
   }
 };
 
-export const generateFaceSwap = async (
-  targetBase64: string,
-  sourceBase64: string,
-  prompt: string
-): Promise<string> => {
-  const ai = getGenAI();
+/**
+ * Generates AI suggestions for image prompt keywords based on current context.
+ */
+export const getPromptSuggestions = async (
+  currentPrompt: string,
+  imageContext?: string | null,
+  adjustments?: ImageAdjustments
+): Promise<string[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const parts: any[] = [
+    { text: "Analyze the current cinematic prompt and studio adjustments. Suggest 8 hyper-relevant, creative keywords (max 3 words each) that enhance finer textures, subtle lighting nuances, or artistic mood. If adjustments show high contrast, suggest keywords like 'Chiaroscuro' or 'Noir'. If high saturation, suggest 'Vibrant' or 'Technicolor'. Return only a JSON array of strings." }
+  ];
+
+  if (currentPrompt) {
+    parts.push({ text: `User's Current Textual Brief: ${currentPrompt}` });
+  }
+
+  if (adjustments) {
+    parts.push({ text: `Current Manual Visual Calibration: ${JSON.stringify(adjustments)}` });
+  }
+
+  if (imageContext) {
+    parts.push({
+      inlineData: {
+        mimeType: getMimeType(imageContext),
+        data: cleanBase64(imageContext)
+      }
+    });
+  }
+
   try {
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: {
-        parts: [
-          { inlineData: { mimeType: getMimeType(targetBase64), data: cleanBase64(targetBase64) } },
-          { inlineData: { mimeType: getMimeType(sourceBase64), data: cleanBase64(sourceBase64) } },
-          { text: prompt },
-        ],
+      model: "gemini-3-flash-preview",
+      contents: { parts },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING,
+          },
+        },
       },
     });
 
-    const candidate = response.candidates?.[0];
-    if (!candidate) throw new Error("No response from model.");
-    
-    if (candidate.finishReason === 'SAFETY') {
-      throw new Error("SAFETY_BLOCKED");
-    }
+    const text = response.text;
+    if (!text) return [];
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Error generating suggestions:", error);
+    return [];
+  }
+};
 
-    const parts = candidate.content?.parts;
-    if (parts) {
-      for (const part of parts) {
-        if (part.inlineData?.data) return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+/**
+ * Conversational AI assistant for refining cinematic goals.
+ */
+export const sendChatMessage = async (
+  history: ChatMessage[],
+  newMessage: string,
+  imageContext?: string | null
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const systemInstruction = `You are a professional Cinematic Director and Master Prompt Engineer for "Cinematic AI Studio Pro". 
+  Your goal is to help users translate their artistic vision into highly detailed, texture-rich prompts. 
+  Focus on lighting (volumetric, rim, rembrandt), textures (skin pores, fabric weave), and mood (ethereal, gritty, glamorous). 
+  Analyze any provided image context to suggest identity-preserving enhancements. 
+  Keep responses concise, artistic, and encouraging.`;
+
+  const parts: any[] = [];
+  if (imageContext) {
+    parts.push({
+      inlineData: {
+        mimeType: getMimeType(imageContext),
+        data: cleanBase64(imageContext)
       }
-    }
-    throw new Error("No image data in response.");
-  } catch (error: any) {
-    if (error.message === "SAFETY_BLOCKED") throw new Error("ERR_SAFETY");
-    throw new Error(handleGenAIError(error));
+    });
+  }
+  parts.push({ text: newMessage });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [
+        ...history.map(m => ({ 
+          role: m.role, 
+          parts: [{ text: m.text }] 
+        })),
+        { role: 'user', parts }
+      ],
+      config: { systemInstruction }
+    });
+
+    return response.text || "I'm sorry, I couldn't synthesize a response at this moment.";
+  } catch (error) {
+    console.error("Chat Error:", error);
+    return "The creative link was interrupted. Please try rephrasing your goal.";
   }
 };

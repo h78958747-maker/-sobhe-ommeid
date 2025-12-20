@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { ChatMessage, Language } from '../types';
 import { translations } from '../translations';
@@ -39,46 +40,48 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[400px] bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div className="flex flex-col h-full bg-transparent overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-500 dark:text-blue-400">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+      <div className="p-6 border-b border-white/10 flex items-center justify-between">
+        <h3 className="text-sm font-black uppercase tracking-[0.3em] text-studio-neon flex items-center gap-3">
+          <svg className="w-5 h-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           {t.chatTitle}
         </h3>
+        <div className="flex gap-1.5">
+           <span className="w-1.5 h-1.5 bg-studio-neon rounded-full animate-ping"></span>
+           <span className="w-1.5 h-1.5 bg-studio-neon rounded-full opacity-50"></span>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.length === 0 && (
-           <div className="text-center text-gray-500 mt-10 text-sm">
-             <p>{t.modelGreeting}</p>
+           <div className="text-center py-20 space-y-4 animate-reveal">
+             <div className="w-16 h-16 bg-studio-neon/10 rounded-full flex items-center justify-center mx-auto border border-studio-neon/20">
+                <svg className="w-8 h-8 text-studio-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+             </div>
+             <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-black">{t.modelGreeting}</p>
            </div>
         )}
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-reveal`}>
+            <div className={`max-w-[85%] rounded-[1.5rem] px-5 py-4 text-xs leading-relaxed shadow-xl border ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none shadow-sm'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
-              }`}
-            >
+                  ? 'bg-studio-neon text-black border-studio-neon font-black'
+                  : 'bg-white/5 text-gray-200 border-white/10 backdrop-blur-md'
+              }`}>
               {msg.text}
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
-             <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl rounded-bl-none px-4 py-2 flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="flex justify-start animate-reveal">
+             <div className="bg-white/5 border border-white/10 rounded-[1.5rem] px-5 py-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-studio-neon rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-studio-neon rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
+                <span className="w-2 h-2 bg-studio-neon rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></span>
              </div>
           </div>
         )}
@@ -86,30 +89,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+      <form onSubmit={handleSubmit} className="p-6 border-t border-white/10 flex gap-4 bg-black/60">
         <input
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder={t.chatPlaceholder}
           disabled={disabled || isLoading}
-          className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-studio-neon transition-all"
         />
         <Button 
           type="submit" 
           disabled={disabled || isLoading || !inputText.trim()}
-          className="px-4 py-2"
-          variant="primary"
+          variant="gold"
+          className="px-6 py-4 rounded-2xl h-14 w-14 flex items-center justify-center p-0"
         >
-           {language === 'fa' ? (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 rotate-180">
-               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-             </svg>
-           ) : (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-            </svg>
-           )}
+          <svg className={`w-5 h-5 ${language === 'fa' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
         </Button>
       </form>
     </div>

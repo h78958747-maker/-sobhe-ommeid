@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cinematic AI Studio | Sobh Omid</title>
+    <title>Cinematic AI Studio | Studio Wizard</title>
     <!-- Vazirmatn Font for Persian -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     
@@ -28,62 +28,61 @@
             },
             animation: {
               'reveal': 'reveal 1s cubic-bezier(0.23, 1, 0.32, 1) forwards',
-              'shimmer': 'shimmer 2.5s linear infinite',
+              'slide-in-left': 'slideInLeft 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
+              'slide-in-right': 'slideInRight 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
+              'logo-cinema': 'logo-cinema 6s ease-in-out infinite',
               'float': 'float 8s ease-in-out infinite',
-              'drift': 'drift 40s linear infinite',
-              'blob': 'blob 10s infinite',
-              'logo-cinema': 'logo-cinema 4s ease-in-out infinite',
+              'pulse-neon': 'pulse-neon 3s ease-in-out infinite',
             },
             keyframes: {
               reveal: {
-                '0%': { opacity: '0', transform: 'scale(0.96) translateY(30px)' },
+                '0%': { opacity: '0', transform: 'scale(0.98) translateY(20px)' },
                 '100%': { opacity: '1', transform: 'scale(1) translateY(0)' }
               },
-              shimmer: {
-                '0%': { backgroundPosition: '-200% 0' },
-                '100%': { backgroundPosition: '200% 0' }
+              slideInLeft: {
+                '0%': { opacity: '0', transform: 'translateX(-50px)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' }
               },
-              float: {
-                '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
-                '50%': { transform: 'translateY(-25px) rotate(5deg)' }
-              },
-              drift: {
-                '0%': { backgroundPosition: '0 0' },
-                '100%': { backgroundPosition: '1000px 1000px' }
-              },
-              blob: {
-                '0%, 100%': { transform: 'translate(0px, 0px) scale(1)' },
-                '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                '66%': { transform: 'translate(-20px, 20px) scale(0.9)' }
+              slideInRight: {
+                '0%': { opacity: '0', transform: 'translateX(50px)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' }
               },
               'logo-cinema': {
-                '0%, 100%': { transform: 'scale(1)', filter: 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.3))' },
-                '50%': { transform: 'scale(1.08)', filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 0.7))' }
+                '0%, 100%': { transform: 'scale(1) rotate(0deg)', filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.3))' },
+                '50%': { transform: 'scale(1.05) rotate(2deg)', filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 0.6))' }
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-15px)' }
               }
-            },
-            boxShadow: {
-              'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
-              'neon-blue': '0 0 20px rgba(0, 240, 255, 0.4)',
-              'neon-purple': '0 0 20px rgba(170, 0, 255, 0.4)',
             }
           }
         }
       }
     </script>
     <style>
-      body { scrollbar-width: none; -ms-overflow-style: none; transition: background-color 0.5s ease; }
+      body { 
+        scrollbar-width: none; 
+        -ms-overflow-style: none; 
+        overflow-x: hidden; 
+        background: #020202;
+      }
       body::-webkit-scrollbar { display: none; }
-      .perspective-1000 { perspective: 1000px; }
-      .rotate-x-60 { transform: rotateX(60deg); }
-      .shadow-glass { 
-        backdrop-filter: blur(24px); 
-        border: 1px solid rgba(255, 255, 255, 0.12);
+      
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
       }
-      .dark .shadow-glass {
-        border: 1px solid rgba(255, 255, 255, 0.05);
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
       }
-      * { -webkit-tap-highlight-color: transparent; }
-      .animate-float { animation: float 10s ease-in-out infinite; }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 240, 255, 0.2);
+        border-radius: 10px;
+      }
+
+      .animate-reveal { animation: reveal 1s forwards; }
+      .animate-slide-in-left { animation: slideInLeft 0.8s forwards; }
+      .animate-slide-in-right { animation: slideInRight 0.8s forwards; }
     </style>
   <script type="importmap">
 {
@@ -96,7 +95,7 @@
 }
 </script>
 </head>
-  <body class="bg-white dark:bg-black text-gray-900 dark:text-white antialiased overflow-x-hidden selection:bg-studio-neon/30">
+  <body class="bg-black text-white antialiased selection:bg-studio-neon/30">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
