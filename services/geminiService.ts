@@ -3,16 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { MODEL_NAME } from "../constants";
 import { AspectRatio, ImageAdjustments, ChatMessage } from "../types";
 
-// Helper to clean base64 string
 const cleanBase64 = (b64: string) => b64.split(',')[1] || b64;
 
-// Helper to get mime type from base64
 const getMimeType = (b64: string) => {
   const match = b64.match(/^data:(.*);base64,/);
   return match && match[1] ? match[1] : 'image/jpeg';
 };
 
-// Helper to find closest supported aspect ratio for AUTO mode
 const getClosestAspectRatio = (width: number, height: number): AspectRatio => {
   const ratio = width / height;
   const supported: { label: AspectRatio, value: number }[] = [
@@ -36,9 +33,6 @@ const getClosestAspectRatio = (width: number, height: number): AspectRatio => {
   return closest.label;
 };
 
-/**
- * Generates an edited image using Gemini models.
- */
 export const generateEditedImage = async (
   base64Image: string,
   prompt: string,
@@ -54,11 +48,8 @@ export const generateEditedImage = async (
     finalRatio = '1:1';
   }
 
-  const config: any = {
-    imageConfig: {
-      aspectRatio: finalRatio
-    }
-  };
+  // Strengthened instruction to ensure image output
+  const systemInstruction = "You are an expert cinematic image synthesizer. Your sole purpose is to transform input images into cinematic masterpieces. You MUST always output a new image part. Do not engage in conversation or provide text-only refusals unless the content is strictly prohibited by safety filters.";
 
   try {
     const response = await ai.models.generateContent({
@@ -66,75 +57,66 @@ export const generateEditedImage = async (
       contents: {
         parts: [
           { inlineData: { mimeType: getMimeType(base64Image), data: cleanBase64(base64Image) } },
-          { text: prompt },
+          { text: `TASK: Transform this image into a cinematic masterpiece. REQUIREMENTS: ${prompt}` },
         ],
       },
-      config
+      config: {
+        systemInstruction,
+        imageConfig: {
+          aspectRatio: finalRatio
+        }
+      }
     });
 
     const candidate = response.candidates?.[0];
-    if (!candidate) throw new Error("No candidates returned from the creative engine.");
+    if (!candidate) {
+      throw new Error("ERR_NO_CANDIDATE");
+    }
     
-    // Check for safety rejection
-    if (candidate.finishReason === 'SAFETY') throw new Error("ERR_SAFETY");
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error("ERR_SAFETY");
+    }
 
-    const parts = candidate.content?.parts;
-    let fallbackText = "";
+    const parts = candidate.content?.parts || [];
+    let textRefusal = "";
 
-    if (parts) {
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-        }
-        if (part.text) {
-          fallbackText += part.text;
-        }
+    // Iterate through all parts to find the image
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+      }
+      if (part.text) {
+        textRefusal += part.text;
       }
     }
 
-    // If no image was found but text was returned, the model likely refused or failed.
-    if (fallbackText) {
-      throw new Error(fallbackText);
+    // Handle cases where the model only returns text
+    if (textRefusal.length > 0) {
+      throw new Error(textRefusal);
     }
 
-    throw new Error("The model did not return a valid cinematic frame. Please refine your description.");
+    throw new Error("The creative engine failed to synthesize a valid frame. Please try a simpler prompt or a clearer source image.");
   } catch (error: any) {
-    if (error.message?.includes("SAFETY")) throw new Error("ERR_SAFETY");
+    if (error.message?.toUpperCase().includes("SAFETY")) {
+      throw new Error("ERR_SAFETY");
+    }
     throw error;
   }
 };
 
-/**
- * Generates AI suggestions for image prompt keywords based on current context.
- */
 export const getPromptSuggestions = async (
   currentPrompt: string,
   imageContext?: string | null,
   adjustments?: ImageAdjustments
 ): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  const systemInstruction = `You are a professional Creative Director and Cinematographer. 
-  Your task is to analyze the provided image (if any), the current textual prompt, and the technical image adjustments to suggest exactly 8 creative keywords.
-  Return ONLY a valid JSON array of 8 strings.`;
+  const systemInstruction = "Analyze the image and prompt. Return exactly 8 cinematic keywords as a JSON array of strings.";
 
   const parts: any[] = [];
   if (imageContext) {
-    parts.push({
-      inlineData: {
-        mimeType: getMimeType(imageContext),
-        data: cleanBase64(imageContext)
-      }
-    });
+    parts.push({ inlineData: { mimeType: getMimeType(imageContext), data: cleanBase64(imageContext) } });
   }
-
-  const analysisContext = {
-    currentTextualBrief: currentPrompt,
-    manualTechnicalAdjustments: adjustments,
-  };
-
-  parts.push({ text: `Contextual Data for Analysis: ${JSON.stringify(analysisContext)}` });
-  parts.push({ text: "Generate 8 hyper-relevant cinematic keywords." });
+  parts.push({ text: `Current Prompt: ${currentPrompt}. Technical Context: ${JSON.stringify(adjustments)}` });
 
   try {
     const response = await ai.models.generateContent({
@@ -150,37 +132,24 @@ export const getPromptSuggestions = async (
       },
     });
 
-    const text = response.text;
-    if (!text) return [];
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(response.text || "[]");
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.error("Error generating suggestions:", error);
     return [];
   }
 };
 
-/**
- * Conversational AI assistant for refining cinematic goals.
- */
 export const sendChatMessage = async (
   history: ChatMessage[],
   newMessage: string,
   imageContext?: string | null
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const systemInstruction = `You are a professional Cinematic Director for "Cinematic AI Studio Pro". 
-  Focus on lighting, textures, and mood. Keep responses artistic and encouraging.`;
+  const systemInstruction = "You are a professional Cinematic Director. Help the user refine their artistic vision. Keep responses concise and creative.";
 
   const parts: any[] = [];
   if (imageContext) {
-    parts.push({
-      inlineData: {
-        mimeType: getMimeType(imageContext),
-        data: cleanBase64(imageContext)
-      }
-    });
+    parts.push({ inlineData: { mimeType: getMimeType(imageContext), data: cleanBase64(imageContext) } });
   }
   parts.push({ text: newMessage });
 
@@ -188,18 +157,14 @@ export const sendChatMessage = async (
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [
-        ...history.map(m => ({ 
-          role: m.role, 
-          parts: [{ text: m.text }] 
-        })),
+        ...history.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
         { role: 'user', parts }
       ],
       config: { systemInstruction }
     });
 
-    return response.text || "Connection to the studio director was lost.";
+    return response.text || "Connection lost.";
   } catch (error) {
-    console.error("Chat Error:", error);
-    return "The creative link was interrupted.";
+    return "Error communicating with the director.";
   }
 };
