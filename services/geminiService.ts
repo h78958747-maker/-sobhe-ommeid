@@ -73,18 +73,31 @@ export const generateEditedImage = async (
     });
 
     const candidate = response.candidates?.[0];
-    if (!candidate) throw new Error("No candidates returned.");
+    if (!candidate) throw new Error("No candidates returned from the creative engine.");
+    
+    // Check for safety rejection
     if (candidate.finishReason === 'SAFETY') throw new Error("ERR_SAFETY");
 
     const parts = candidate.content?.parts;
+    let fallbackText = "";
+
     if (parts) {
       for (const part of parts) {
         if (part.inlineData?.data) {
           return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
         }
+        if (part.text) {
+          fallbackText += part.text;
+        }
       }
     }
-    throw new Error("No image data in response.");
+
+    // If no image was found but text was returned, the model likely refused or failed.
+    if (fallbackText) {
+      throw new Error(fallbackText);
+    }
+
+    throw new Error("The model did not return a valid cinematic frame. Please refine your description.");
   } catch (error: any) {
     if (error.message?.includes("SAFETY")) throw new Error("ERR_SAFETY");
     throw error;
@@ -101,18 +114,11 @@ export const getPromptSuggestions = async (
 ): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  const parts: any[] = [
-    { text: "Analyze the current cinematic prompt and studio adjustments. Suggest 8 hyper-relevant, creative keywords (max 3 words each) that enhance finer textures, subtle lighting nuances, or artistic mood. If adjustments show high contrast, suggest keywords like 'Chiaroscuro' or 'Noir'. If high saturation, suggest 'Vibrant' or 'Technicolor'. Return only a JSON array of strings." }
-  ];
+  const systemInstruction = `You are a professional Creative Director and Cinematographer. 
+  Your task is to analyze the provided image (if any), the current textual prompt, and the technical image adjustments to suggest exactly 8 creative keywords.
+  Return ONLY a valid JSON array of 8 strings.`;
 
-  if (currentPrompt) {
-    parts.push({ text: `User's Current Textual Brief: ${currentPrompt}` });
-  }
-
-  if (adjustments) {
-    parts.push({ text: `Current Manual Visual Calibration: ${JSON.stringify(adjustments)}` });
-  }
-
+  const parts: any[] = [];
   if (imageContext) {
     parts.push({
       inlineData: {
@@ -122,17 +128,24 @@ export const getPromptSuggestions = async (
     });
   }
 
+  const analysisContext = {
+    currentTextualBrief: currentPrompt,
+    manualTechnicalAdjustments: adjustments,
+  };
+
+  parts.push({ text: `Contextual Data for Analysis: ${JSON.stringify(analysisContext)}` });
+  parts.push({ text: "Generate 8 hyper-relevant cinematic keywords." });
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
+        systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-          },
+          items: { type: Type.STRING },
         },
       },
     });
@@ -157,11 +170,8 @@ export const sendChatMessage = async (
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  const systemInstruction = `You are a professional Cinematic Director and Master Prompt Engineer for "Cinematic AI Studio Pro". 
-  Your goal is to help users translate their artistic vision into highly detailed, texture-rich prompts. 
-  Focus on lighting (volumetric, rim, rembrandt), textures (skin pores, fabric weave), and mood (ethereal, gritty, glamorous). 
-  Analyze any provided image context to suggest identity-preserving enhancements. 
-  Keep responses concise, artistic, and encouraging.`;
+  const systemInstruction = `You are a professional Cinematic Director for "Cinematic AI Studio Pro". 
+  Focus on lighting, textures, and mood. Keep responses artistic and encouraging.`;
 
   const parts: any[] = [];
   if (imageContext) {
@@ -187,9 +197,9 @@ export const sendChatMessage = async (
       config: { systemInstruction }
     });
 
-    return response.text || "I'm sorry, I couldn't synthesize a response at this moment.";
+    return response.text || "Connection to the studio director was lost.";
   } catch (error) {
     console.error("Chat Error:", error);
-    return "The creative link was interrupted. Please try rephrasing your goal.";
+    return "The creative link was interrupted.";
   }
 };

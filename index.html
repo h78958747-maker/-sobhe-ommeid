@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cinematic AI Studio | Studio Wizard</title>
+    <title>Cinematic Crystal Studio | Studio Wizard</title>
     <!-- Vazirmatn Font for Persian -->
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     
@@ -23,37 +23,55 @@
                 gold: '#ffd700',
               }
             },
+            boxShadow: {
+              'neon-blue': '0 0 30px rgba(0, 240, 255, 0.3)',
+              'neon-gold': '0 0 50px rgba(255, 215, 0, 0.3)',
+              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+              'glass-heavy': '0 20px 80px 0 rgba(0, 240, 255, 0.15)',
+              'inner-glow': 'inset 0 0 15px rgba(0, 240, 255, 0.2)',
+            },
             fontFamily: {
               sans: ['Vazirmatn', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             },
             animation: {
-              'reveal': 'reveal 1s cubic-bezier(0.23, 1, 0.32, 1) forwards',
+              'reveal': 'reveal 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-left': 'slideInLeft 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'slide-in-right': 'slideInRight 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
-              'logo-cinema': 'logo-cinema 6s ease-in-out infinite',
+              'logo-cinema': 'logo-cinema 8s ease-in-out infinite',
               'float': 'float 8s ease-in-out infinite',
               'pulse-neon': 'pulse-neon 3s ease-in-out infinite',
+              'shimmer-fast': 'shimmer 2s infinite linear',
+              'pulse-subtle': 'pulseSubtle 3s infinite ease-in-out',
+              'draw-svg': 'drawSvg 0.6s ease-out forwards',
             },
             keyframes: {
               reveal: {
-                '0%': { opacity: '0', transform: 'scale(0.98) translateY(20px)' },
-                '100%': { opacity: '1', transform: 'scale(1) translateY(0)' }
+                '0%': { opacity: '0', transform: 'scale(0.95) translateY(40px) rotateX(10deg)' },
+                '100%': { opacity: '1', transform: 'scale(1) translateY(0) rotateX(0)' }
               },
               slideInLeft: {
-                '0%': { opacity: '0', transform: 'translateX(-50px)' },
-                '100%': { opacity: '1', transform: 'translateX(0)' }
+                '0%': { opacity: '0', transform: 'translateX(-100px) skewX(5deg)' },
+                '100%': { opacity: '1', transform: 'translateX(0) skewX(0)' }
               },
               slideInRight: {
-                '0%': { opacity: '0', transform: 'translateX(50px)' },
-                '100%': { opacity: '1', transform: 'translateX(0)' }
+                '0%': { opacity: '0', transform: 'translateX(100px) skewX(-5deg)' },
+                '100%': { opacity: '1', transform: 'translateX(0) skewX(0)' }
               },
               'logo-cinema': {
-                '0%, 100%': { transform: 'scale(1) rotate(0deg)', filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.3))' },
-                '50%': { transform: 'scale(1.05) rotate(2deg)', filter: 'drop-shadow(0 0 20px rgba(0, 240, 255, 0.6))' }
+                '0%, 100%': { transform: 'scale(1) rotate(0deg) translateY(0)', filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.2))' },
+                '50%': { transform: 'scale(1.05) rotate(2deg) translateY(-5px)', filter: 'drop-shadow(0 0 25px rgba(0, 240, 255, 0.5))' }
+              },
+              shimmer: {
+                '0%': { transform: 'translateX(-150%) skewX(-20deg)' },
+                '100%': { transform: 'translateX(150%) skewX(-20deg)' }
               },
               float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-15px)' }
+                '0%, 100%': { transform: 'translateY(0) rotate(0)' },
+                '50%': { transform: 'translateY(-20px) rotate(5deg)' }
+              },
+              drawSvg: {
+                '0%': { 'stroke-dasharray': '0 100', opacity: '0' },
+                '100%': { 'stroke-dasharray': '100 0', opacity: '1' }
               }
             }
           }
@@ -66,23 +84,41 @@
         -ms-overflow-style: none; 
         overflow-x: hidden; 
         background: #020202;
+        perspective: 1200px;
       }
       body::-webkit-scrollbar { display: none; }
       
       .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
+        width: 3px;
       }
       .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(255, 255, 255, 0.01);
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
         background: rgba(0, 240, 255, 0.2);
         border-radius: 10px;
       }
 
-      .animate-reveal { animation: reveal 1s forwards; }
-      .animate-slide-in-left { animation: slideInLeft 0.8s forwards; }
-      .animate-slide-in-right { animation: slideInRight 0.8s forwards; }
+      .shadow-glass {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .animate-draw-svg path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawPath 2s ease-out forwards;
+      }
+
+      @keyframes drawPath {
+        to { stroke-dashoffset: 0; }
+      }
+      
+      input[type="range"] {
+        accent-color: #00f0ff;
+      }
     </style>
   <script type="importmap">
 {

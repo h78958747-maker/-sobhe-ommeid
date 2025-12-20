@@ -1,7 +1,7 @@
 
 import { QualityMode, LightingIntensity, ColorGradingStyle, PromptSuggestion } from "./types";
 
-export const DEFAULT_PROMPT = `Cinematic studio portrait of the person in the reference photo, emphasizing ultra-high-fidelity micro-textures. Render natural skin pores, fine peach fuzz, and authentic epidermal imperfections. Capture subtle specular highlights on the eyes and lips. Preserving the exact likeness and identity with sub-surface scattering for realistic skin glow. 8k resolution, extreme detail on hair strands and fabric weave, volumetric studio lighting with natural three-dimensional shadows, smooth depth of field, professional cinematic color grading, high-end editorial photography style. Flawless movie finish with organic film grain and micro-reflections.`;
+export const DEFAULT_PROMPT = `Cinematic studio masterpiece, 8k ultra-detailed, professional color grading, anamorphic lens flares, volumetric lighting, high-end cinema camera textures, hyper-realistic skin and fabric, masterpiece composition.`;
 
 export const QUALITY_MODIFIERS: Record<QualityMode, string> = {
   standard: ", sharp focus, cinematic photography",
@@ -20,6 +20,14 @@ export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
   cinematic: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z",
   dramatic: "M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z",
   intense: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+};
+
+export const COLOR_ICONS: Record<ColorGradingStyle, string> = {
+  none: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  warm_vintage: "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.263l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636",
+  cool_noir: "M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z",
+  teal_orange: "M9.53 16.122a3 3 0 00-3.035 3.678 10.47 10.47 0 01-1.99-1.99 3 3 0 003.678-3.035m9.74 9.74a3 3 0 11-4.243 4.242 3 3 0 014.243-4.242z",
+  classic_bw: "M12 3v18m9-9H3"
 };
 
 export const COLOR_GRADING_STYLES: Record<ColorGradingStyle, string> = {

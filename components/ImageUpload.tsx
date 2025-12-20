@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from './Button';
 import { BatchItem, Language } from '../types';
 import { PromptAssistant } from './PromptAssistant';
+import { playUpload } from '../services/audioService';
 
 interface ImageUploadProps {
   onImageSelected: (base64: string | string[]) => void;
@@ -56,6 +57,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const handleFiles = (files: FileList) => {
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, allowMultiple ? 5 : 1);
     
+    if (validFiles.length > 0) {
+      playUpload(); // Trigger upload sound feedback
+    }
+
     if (validFiles.length > 1) {
        const readers: Promise<string>[] = [];
        validFiles.forEach(file => {
