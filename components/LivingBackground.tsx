@@ -1,7 +1,6 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 
-// Specialized SVG Icons
 const Icons = {
   Star: () => (
     <svg viewBox="0 0 24 24" className="w-full h-full text-white fill-current">
@@ -24,10 +23,6 @@ const Icons = {
     <svg viewBox="0 0 100 100" className="w-full h-full text-studio-violet stroke-current" fill="none" strokeWidth="3">
        <path d="M 30 5 Q 70 25 30 50 Q 70 75 30 95" opacity="0.5" />
        <path d="M 70 5 Q 30 25 70 50 Q 30 75 70 95" />
-       <line x1="30" y1="20" x2="70" y2="20" strokeWidth="2" />
-       <line x1="30" y1="40" x2="70" y2="40" strokeWidth="2" />
-       <line x1="30" y1="60" x2="70" y2="60" strokeWidth="2" />
-       <line x1="30" y1="80" x2="70" y2="80" strokeWidth="2" />
     </svg>
   ),
   Atom: () => (
@@ -37,72 +32,86 @@ const Icons = {
       <ellipse cx="50" cy="50" rx="40" ry="10" transform="rotate(60 50 50)" />
       <ellipse cx="50" cy="50" rx="40" ry="10" transform="rotate(120 50 50)" />
     </svg>
-  ),
-  Wave: () => (
-    <svg viewBox="0 0 100 50" className="w-full h-full text-studio-gold stroke-current" fill="none" strokeWidth="2">
-      <path d="M0 25 Q 25 5, 50 25 T 100 25" />
-    </svg>
   )
 };
 
-const IconTypes = [Icons.Star, Icons.Planet, Icons.Hexagon, Icons.DNA, Icons.Atom, Icons.Wave];
+const IconTypes = [Icons.Star, Icons.Planet, Icons.Hexagon, Icons.DNA, Icons.Atom];
 
 export const LivingBackground: React.FC = React.memo(() => {
-  // Generate random icons with deeper integration
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth - 0.5) * 40,
+        y: (e.clientY / window.innerHeight - 0.5) * 40
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   const icons = useMemo(() => {
-    return Array.from({ length: 18 }).map((_, i) => {
+    return Array.from({ length: 22 }).map((_, i) => {
       const Icon = IconTypes[Math.floor(Math.random() * IconTypes.length)];
       return {
         id: i,
         Icon,
         left: `${Math.random() * 100}%`,
         top: `${Math.random() * 100}%`,
-        size: Math.random() * 60 + 20,
-        // Mixing float animation with pulse for "breathing" effect
-        animation: Math.random() > 0.6 ? 'animate-float-fast' : Math.random() > 0.3 ? 'animate-float-medium' : 'animate-float-slow',
-        pulse: Math.random() > 0.5 ? 'animate-pulse' : '', 
+        size: Math.random() * 50 + 15,
+        parallax: Math.random() * 1.5 + 0.5,
         delay: `${Math.random() * 5}s`,
-        opacity: Math.random() * 0.15 + 0.05, 
+        opacity: Math.random() * 0.12 + 0.04, 
         color: i % 3 === 0 ? 'text-studio-neon' : i % 3 === 1 ? 'text-studio-purple' : 'text-studio-gold',
       };
     });
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-black">
-      {/* Deep Space Background */}
-      <div className="absolute inset-0 bg-noise opacity-[0.08] mix-blend-overlay"></div>
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-black dark:bg-black bg-white transition-colors duration-1000">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 bg-noise opacity-[0.05] dark:opacity-[0.1]"></div>
       
-      {/* Fluid Plasma Gradient - Replaces Flashlight */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-studio-purple/20 rounded-full blur-[120px] animate-blob mix-blend-screen"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-studio-neon/10 rounded-full blur-[130px] animate-blob animation-delay-2000 mix-blend-screen"></div>
-      <div className="absolute top-[40%] left-[40%] w-[40%] h-[40%] bg-studio-gold/10 rounded-full blur-[100px] animate-blob animation-delay-4000 mix-blend-screen"></div>
-      
-      {/* Moving Grid - Subtle Floor */}
-      <div className="absolute bottom-0 left-[-50%] w-[200%] h-[50%] opacity-20 transform-gpu perspective-1000 rotate-x-60">
-        <div className="w-full h-full bg-[linear-gradient(rgba(0,240,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] animate-drift"></div>
+      {/* Dynamic Glows */}
+      <div 
+        className="absolute w-[60%] h-[60%] rounded-full blur-[150px] opacity-20 dark:opacity-30 bg-studio-purple transition-transform duration-700 ease-out"
+        style={{ transform: `translate(${mousePos.x * -0.5}px, ${mousePos.y * -0.5}px)`, top: '10%', left: '10%' }}
+      ></div>
+      <div 
+        className="absolute w-[50%] h-[50%] rounded-full blur-[120px] opacity-10 dark:opacity-20 bg-studio-neon transition-transform duration-700 ease-out"
+        style={{ transform: `translate(${mousePos.x * 0.8}px, ${mousePos.y * 0.8}px)`, bottom: '10%', right: '10%' }}
+      ></div>
+
+      {/* Grid Floor */}
+      <div className="absolute bottom-[-100px] left-[-50%] w-[200%] h-[50%] opacity-[0.03] dark:opacity-[0.08] perspective-[1000px] rotate-x-[60deg]">
+        <div 
+          className="w-full h-full bg-[linear-gradient(rgba(0,240,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.2)_1px,transparent_1px)] bg-[size:60px_60px]"
+          style={{ transform: `translate(${mousePos.x * 0.1}px, ${mousePos.y * 0.1}px)` }}
+        ></div>
       </div>
 
-      {/* Floating Icons Layer - Sparse & Premium */}
+      {/* Floating Elements */}
       {icons.map((item) => (
         <div
           key={item.id}
-          className={`absolute ${item.animation} ${item.pulse} ${item.color} transition-all duration-[2000ms] ease-in-out transform hover:scale-125 hover:brightness-125`}
+          className={`absolute ${item.color} transition-all duration-1000 ease-out animate-float`}
           style={{
             left: item.left,
             top: item.top,
             width: `${item.size}px`,
             height: `${item.size}px`,
-            animationDelay: item.delay,
             opacity: item.opacity,
+            transform: `translate(${mousePos.x * item.parallax}px, ${mousePos.y * item.parallax}px)`,
+            animationDelay: item.delay
           }}
         >
           <item.Icon />
         </div>
       ))}
       
-      {/* Vignette Overlay for Focus */}
-      <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/40 to-black/90"></div>
+      {/* Vignette */}
+      <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent dark:to-black/80 to-white/60"></div>
     </div>
   );
 });

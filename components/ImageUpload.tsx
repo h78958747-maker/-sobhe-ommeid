@@ -1,25 +1,41 @@
 
-
 import React, { useRef, useState } from 'react';
 import { Button } from './Button';
-import { BatchItem } from '../types';
+import { BatchItem, Language } from '../types';
+import { PromptAssistant } from './PromptAssistant';
 
 interface ImageUploadProps {
   onImageSelected: (base64: string | string[]) => void;
+  onDimensionsDetected?: (width: number, height: number) => void;
+  onDescriptionChange?: (text: string) => void;
   selectedImage: string | null;
-  queue?: BatchItem[];
+  batchImages?: BatchItem[];
+  description?: string;
   title?: string;
   className?: string;
   onOpenCamera?: () => void;
+  aspectRatio?: string; 
+  descriptionLabel?: string;
+  descriptionPlaceholder?: string;
+  allowMultiple?: boolean;
+  language: Language;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({ 
   onImageSelected, 
+  onDimensionsDetected,
+  onDescriptionChange,
   selectedImage, 
-  queue = [],
+  batchImages = [],
+  description = "",
   title,
   className = "",
-  onOpenCamera
+  onOpenCamera,
+  aspectRatio = "1:1",
+  descriptionLabel = "Description",
+  descriptionPlaceholder = "Describe image...",
+  allowMultiple = false,
+  language
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -29,138 +45,173 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
   };
 
+  const getImageDimensions = (base64: string): Promise<{w: number, h: number}> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.width, h: img.height });
+      img.src = base64;
+    });
+  };
+
   const handleFiles = (files: FileList) => {
-    if (files.length > 1) {
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, allowMultiple ? 5 : 1);
+    
+    if (validFiles.length > 1) {
        const readers: Promise<string>[] = [];
-       Array.from(files).forEach(file => {
-         if (file.type.startsWith('image/')) {
-           readers.push(new Promise(resolve => {
-             const reader = new FileReader();
-             reader.onload = () => resolve(reader.result as string);
-             reader.readAsDataURL(file);
-           }));
-         }
+       validFiles.forEach(file => {
+         readers.push(new Promise(resolve => {
+           const reader = new FileReader();
+           reader.onload = () => resolve(reader.result as string);
+           reader.readAsDataURL(file);
+         }));
        });
-       Promise.all(readers).then(results => onImageSelected(results));
-    } else if (files[0] && files[0].type.startsWith('image/')) {
+       Promise.all(readers).then(async results => {
+         if (results[0] && onDimensionsDetected) {
+            const dims = await getImageDimensions(results[0]);
+            onDimensionsDetected(dims.w, dims.h);
+         }
+         onImageSelected(results);
+       });
+    } else if (validFiles[0]) {
       const reader = new FileReader();
-      reader.onloadend = () => onImageSelected(reader.result as string);
-      reader.readAsDataURL(files[0]);
+      reader.onloadend = async () => {
+        const result = reader.result as string;
+        if (onDimensionsDetected) {
+          const dims = await getImageDimensions(result);
+          onDimensionsDetected(dims.w, dims.h);
+        }
+        onImageSelected(result);
+      };
+      reader.readAsDataURL(validFiles[0]);
     }
   };
 
   const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
     else if (e.type === "dragleave") setDragActive(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files?.length > 0) handleFiles(e.dataTransfer.files);
   };
 
+  const handleAddSuggestion = (suggestion: string) => {
+    if (!onDescriptionChange) return;
+    const cleanDesc = description.trim();
+    const newDesc = cleanDesc ? `${cleanDesc}, ${suggestion}` : suggestion;
+    onDescriptionChange(newDesc);
+  };
+
   return (
-    <div className={`w-full perspective-1000 group/container space-y-4 ${className}`}>
-      <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+    <div className={`w-full group/container space-y-4 ${className}`}>
+      <input ref={fileInputRef} type="file" accept="image/*" multiple={allowMultiple} onChange={handleFileChange} className="hidden" />
       
-      {!selectedImage ? (
+      {!selectedImage && batchImages.length === 0 ? (
         <div className="relative">
             <div 
-            onClick={() => fileInputRef.current?.click()}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`
-                relative h-64 md:h-80 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-500 ease-cinematic transform-style-3d
-                border border-dashed backdrop-blur-md overflow-hidden
-                ${dragActive 
-                ? 'border-cyan-400 bg-cyan-900/20 scale-[1.02] shadow-neon-blue' 
-                : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10'}
-            `}
-            onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-            style={{ transform: isHovered ? 'rotateX(2deg) translateY(-5px)' : 'rotateX(0deg)' }}
+              onClick={() => fileInputRef.current?.click()}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              className={`
+                  relative h-64 md:h-80 rounded-[3rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-700
+                  border border-dashed backdrop-blur-xl overflow-hidden shadow-glass
+                  ${dragActive 
+                  ? 'border-studio-neon bg-studio-neon/20 scale-[1.02]' 
+                  : 'border-black/10 dark:border-white/10 hover:border-studio-neon/40 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'}
+              `}
+              onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
             >
-            {/* Animated Noise Texture */}
             <div className="absolute inset-0 bg-noise opacity-[0.05] pointer-events-none"></div>
             
-            {/* Floating Particles */}
-            <div className={`absolute top-10 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? 'translate-x-4' : ''}`}></div>
-            <div className={`absolute bottom-10 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl transition-all duration-1000 ${isHovered ? '-translate-x-4' : ''}`}></div>
-
-            {/* Icon */}
             <div className={`
-                relative z-10 w-20 h-20 mb-6 rounded-full flex items-center justify-center transition-all duration-500
-                ${isHovered ? 'bg-white text-black scale-110 shadow-[0_0_30px_rgba(255,255,255,0.4)]' : 'bg-white/10 text-white/50'}
+                relative z-10 w-24 h-24 mb-6 rounded-[2rem] flex items-center justify-center transition-all duration-500
+                ${isHovered ? 'bg-studio-neon text-black scale-110 shadow-neon-blue' : 'bg-black/10 dark:bg-white/10 text-gray-400'}
             `}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                 </svg>
             </div>
             
-            <div className="relative z-10 text-center space-y-2">
-                <p className="text-lg font-bold tracking-tight text-white group-hover/container:tracking-wide transition-all">{title || "Upload Reference"}</p>
-                <p className="text-xs text-gray-400">Drag & drop or click to browse</p>
+            <div className="relative z-10 text-center space-y-2 px-6">
+                <p className="text-xl font-black tracking-tighter uppercase">{title || "Upload Reference"}</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+                  {allowMultiple ? (language === 'fa' ? 'انتخاب تا ۵ تصویر همزمان' : "Select up to 5 images") : (language === 'fa' ? 'بکشید و رها کنید یا کلیک کنید' : "Drag & drop or click to browse")}
+                </p>
             </div>
             </div>
 
-            {/* Camera Button Overlay */}
             {onOpenCamera && (
                <button 
                  onClick={(e) => { e.stopPropagation(); onOpenCamera(); }}
-                 className="absolute bottom-4 right-4 z-20 bg-black/60 hover:bg-studio-neon hover:text-black border border-white/10 text-white p-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg group-hover/container:scale-100 scale-90"
-                 title="Open Camera"
+                 className="absolute bottom-6 right-6 z-20 bg-black/60 dark:bg-white/10 hover:bg-studio-neon hover:text-black border border-white/10 text-white p-5 rounded-full backdrop-blur-md transition-all duration-300 shadow-xl hover:scale-110 active:scale-95"
                >
-                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
                  </svg>
                </button>
             )}
         </div>
       ) : (
-        <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 bg-black/40 animate-scale-up group h-[350px]">
-          <img src={selectedImage} alt="Original" className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" />
+        <div className="space-y-6">
+          {batchImages.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {batchImages.map((img) => (
+                <div key={img.id} className="relative aspect-square rounded-[2rem] overflow-hidden border border-black/10 dark:border-white/10 group shadow-lg hover:scale-105 transition-transform">
+                  <img src={img.original} className="w-full h-full object-cover" alt="Batch item" />
+                  <div className={`absolute inset-0 flex items-center justify-center transition-all ${img.status === 'processing' ? 'bg-black/60 opacity-100' : 'opacity-0 hover:opacity-100 bg-black/40'}`}>
+                    {img.status === 'processing' && <div className="w-8 h-8 border-2 border-studio-neon border-t-transparent rounded-full animate-spin"></div>}
+                    {img.status === 'done' && <div className="p-2 bg-green-500 rounded-full shadow-lg"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" /></svg></div>}
+                  </div>
+                </div>
+              ))}
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="aspect-square rounded-[2rem] border-2 border-dashed border-black/10 dark:border-white/10 flex items-center justify-center cursor-pointer hover:border-studio-neon hover:bg-studio-neon/5 transition-all active:scale-95"
+              >
+                <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" strokeWidth={2} /></svg>
+              </div>
+            </div>
+          ) : (
+            <div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-black/60 group h-[450px] animate-reveal">
+              <img src={selectedImage || ""} alt="Selected" className="w-full h-full object-contain" />
+              <button 
+                onClick={() => onImageSelected('')}
+                className="absolute top-6 right-6 bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-xl transition-all hover:scale-110 active:scale-90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6">
-             <div className="flex justify-end gap-2">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onImageSelected(''); }}
-                  className="bg-red-500/20 hover:bg-red-500/80 text-white p-3 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 border border-white/10"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-             </div>
-             <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/80">
-               <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></div>
-               {title || "Active Source"}
-             </span>
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-3">
+              <label className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                 {descriptionLabel}
+              </label>
+              <textarea 
+                value={description}
+                onChange={(e) => onDescriptionChange?.(e.target.value)}
+                placeholder={descriptionPlaceholder}
+                rows={2}
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-3xl px-6 py-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-500 focus:outline-none focus:border-studio-neon transition-all backdrop-blur-2xl resize-none shadow-glass hover:bg-black/10 dark:hover:bg-white/10"
+              />
+            </div>
+
+            {onDescriptionChange && (
+              <PromptAssistant 
+                currentPrompt={description}
+                imageContext={selectedImage}
+                onSelectSuggestion={handleAddSuggestion}
+                language={language}
+              />
+            )}
           </div>
         </div>
-      )}
-
-      {/* Batch Queue Thumbnails */}
-      {queue.length > 0 && (
-         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm animate-fade-in-up">
-           <div className="flex justify-between items-center mb-3">
-             <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Processing Queue</h3>
-             <span className="text-[10px] font-mono text-studio-neon">{queue.length} files</span>
-           </div>
-           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
-             {queue.map((item) => (
-               <div key={item.id} className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-white/10 group cursor-pointer snap-start transition-transform hover:scale-110">
-                 <img src={item.original} className={`w-full h-full object-cover transition-all ${item.status === 'processing' ? 'opacity-50 blur-[1px]' : 'opacity-80 group-hover:opacity-100'}`} />
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    {item.status === 'processing' && <div className="w-5 h-5 border-2 border-studio-neon border-t-transparent rounded-full animate-spin"></div>}
-                    {item.status === 'done' && <div className="bg-green-500/20 p-1 rounded-full"><svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></div>}
-                    {item.status === 'error' && <div className="bg-red-500/20 p-1 rounded-full"><svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></div>}
-                 </div>
-               </div>
-             ))}
-           </div>
-         </div>
       )}
     </div>
   );

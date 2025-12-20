@@ -1,6 +1,6 @@
 {
-  "name": "Copy of sobhe ommeid",
-  "description": "Transform your photos into ultra-realistic cinematic studio portraits using Gemini 2.5 Flash Image.",
+  "name": "Cinematic AI Studio Pro",
+  "description": "استودیوی فوق حرفه‌ای تبدیل تصاویر به شاهکارهای سینمایی با استفاده از هوش مصنوعی جمینای.",
   "requestFramePermissions": [
     "camera"
   ]

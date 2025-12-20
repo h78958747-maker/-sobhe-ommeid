@@ -1,19 +1,19 @@
 
 import { QualityMode, LightingIntensity, ColorGradingStyle, PromptSuggestion } from "./types";
 
-// The ultimate Cinema transformation prompt
-export const DEFAULT_PROMPT = `Cinematic masterpiece, Hollywood movie still, 35mm anamorphic lens, shallow depth of field, professional color grading, dramatic chiaroscuro lighting, high dynamic range, hyper-realistic skin textures, film grain, atmospheric smoke, extremely detailed, 8k resolution, award-winning cinematography.`;
+// Enhanced with user's specific editorial and facial accuracy requirements
+export const DEFAULT_PROMPT = `portrait of the person in the reference photo, extremely detailed and ultra realistic face with natural skin pores, fine textures, and authentic facial features, preserving the exact likeness and identity of person with maximum facial accuracy, sharp focus on eyes and facial details, vibrant yet natural colors, realistic three-dimensional lighting and shadows, dramatic but soft cinematic studio lighting, smooth depth of field, professional cinematic color grading, bright and attractive background, hyper-detailed, lifelike, 4K resolution, masterpiece quality, high-end editorial photography style Cinematic studio shot, highly detailed and realistic, with natural textures and vibrant yet natural colors, focusing on subject details. Soft and dramatic cinematic lighting, natural depth and shadows, bright and appealing background. Smooth depth of field, professional cinematic color grading, 4K quality, high-end editorial photography style.`;
 
 export const QUALITY_MODIFIERS: Record<QualityMode, string> = {
   standard: "",
-  high: ", ultra-sharp focus, masterpiece quality, photorealistic"
+  high: ", ultra-sharp focus on subject, masterpiece quality, photorealistic, extreme texture detail, 8k resolution, high-end commercial finish"
 };
 
 export const LIGHTING_STYLES: Record<LightingIntensity, string> = {
-  soft: "soft wrap-around studio lighting, ethereal glow",
-  cinematic: "classic three-point Hollywood lighting, rim light, volumetric lighting",
-  dramatic: "high-contrast noir lighting, deep shadows, moody atmosphere",
-  intense: "vibrant backlight, sharp highlights, high-energy studio lights"
+  soft: "ethereal soft-box lighting, flattering wrap-around glow, dreamy atmosphere, minimal harsh shadows, high-end beauty lighting",
+  cinematic: "professional cinematic lighting, balanced rim light, volumetric soft fog, high-end studio look, three-dimensional depth",
+  dramatic: "moody chiaroscuro, intense professional shadows, dramatic rim lighting, cinematic depth, strong highlights",
+  intense: "vibrant high-contrast studio lights, sharp professional highlights, energetic cinematic glow, sharp editorial look"
 };
 
 export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
@@ -24,26 +24,40 @@ export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
 };
 
 export const COLOR_GRADING_STYLES: Record<ColorGradingStyle, string> = {
-  none: "",
-  warm_vintage: "warm vintage movie grading, sepia highlights",
-  cool_noir: "cool blue cinematic grading, high contrast, moody noir",
-  teal_orange: "teal and orange blockbuster color grade, cinematic look",
-  classic_bw: "high-end black and white cinematography, rich film grain"
+  none: "natural professional film stock, neutral cinematic color, authentic movie tones, realistic editorial colors",
+  warm_vintage: "warm vintage movie grading, sepia highlights, 1970s film look, nostalgic luxury",
+  cool_noir: "cool blue cinematic grading, high contrast, moody noir tones, cold professional atmosphere",
+  teal_orange: "teal and orange blockbuster color grade, modern cinema aesthetic, vibrant editorial style",
+  classic_bw: "high-end black and white cinematography, rich film grain, classic movie style, elegant monochrome"
 };
 
-export const MODEL_NAME = 'gemini-3-pro-image-preview';
+export const MODEL_NAME = 'gemini-2.5-flash-image';
 
 export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
   { 
-    id: 'cinema_standard', 
-    labelKey: 'styleNoir', 
-    prompt: 'Cinema style, blockbuster movie aesthetic, high-end cinematography, dramatic lighting', 
-    color: 'from-gray-900 to-black',
-    icon: 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918'
+    id: 'cinema_editorial', 
+    labelKey: 'styleFashion', 
+    prompt: 'High-end editorial fashion photography, Vogue style, studio masterpiece, luxury lighting', 
+    color: 'from-amber-400 to-yellow-600',
+    icon: 'M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z'
+  },
+  { 
+    id: 'cinema_blockbuster', 
+    labelKey: 'styleFashion', 
+    prompt: 'Action blockbuster cinema style, dynamic composition, intense lighting, IMAX quality', 
+    color: 'from-orange-500 to-red-600',
+    icon: 'M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z'
+  },
+  { 
+    id: 'cinema_fantasy', 
+    labelKey: 'styleFantasy', 
+    prompt: 'Epic fantasy cinema, ethereal glow, magical lighting, dreamy atmosphere, Hollywood fantasy', 
+    color: 'from-purple-500 to-indigo-600',
+    icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z'
   }
 ];
 
-export const CINEMATIC_KEYWORDS = ["cinema", "35mm", "anamorphic", "studio lighting", "color grade"];
+export const CINEMATIC_KEYWORDS = ["editorial", "4k", "masterpiece", "studio", "realistic face", "skin pores"];
 
 export const LOADING_MESSAGES = [
   "loadAnalyzing",
