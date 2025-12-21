@@ -44,8 +44,8 @@ export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
   { 
     id: 'painted', 
     labelKey: 'PAINTED', 
-    prompt: 'Semi-realistic digital painted portrait illustration. Neutral human facial structure, soft painting style, smooth skin with natural painterly shadows (not realistic). Visible brush strokes in hair and facial details. Balanced proportions, calm neutral expression. Soft studio lighting with gentle diffusion, clean minimal white background. Hand-painted digital illustration aesthetic, high detail but painterly. Natural color palette, 8k resolution, sharp focus. EXCLUDE/AVOID: photorealism, hyper-realism, skin pores, real photo, camera noise, grain, over-sharpened, plastic skin, CGI, 3D render, anime, cartoon, stylized character, exaggerated features, distorted faces, low quality, blur.', 
-    color: 'from-amber-400 to-studio-gold',
+    prompt: 'Semi-realistic digital painting portrait illustration. Neutral human facial structure with balanced proportions and a calm, neutral expression. Soft painting style with hand-painted digital illustration aesthetic. Smooth skin featuring natural painterly shadows (not hyper-realistic). Visible brush strokes in hair and facial details. High-end professional portrait illustration, highly detailed but painterly. Studio lighting with soft diffused light. Clean, white minimalist background. Natural color palette, 8k resolution, artistic quality, peak focus. EXCLUDE/AVOID: realistic, hyper-realism, skin pores, photorealistic, camera noise, grain, over-sharpened, plastic skin, CGI, 3D rendering, anime, cartoon, stylish character, exaggerated features, gender specific, ethnic specific, low quality, blurred, distorted face.', 
+    color: 'from-studio-gold to-amber-500',
     icon: 'M9.53 16.122a3 3 0 00-3.035 3.678 10.47 10.47 0 01-1.99-1.99 3 3 0 003.678-3.035m9.74 9.74a3 3 0 11-4.243 4.242 3 3 0 014.243-4.242z'
   },
   { 

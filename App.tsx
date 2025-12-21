@@ -32,7 +32,8 @@ const App: React.FC = () => {
     error: null,
     progress: 0,
     batchCurrent: 0,
-    batchTotal: 0
+    batchTotal: 0,
+    currentStageKey: ''
   });
   const [lighting, setLighting] = useState<LightingIntensity>('soft');
   const [colorGrading, setColorGrading] = useState<ColorGradingStyle>('none');
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
   const [showLiveView, setShowLiveView] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
   const t = translations[language];
@@ -68,7 +70,8 @@ const App: React.FC = () => {
       isLoading: true, 
       statusText: initialStatus, 
       error: null, 
-      progress: 5 
+      progress: 5,
+      currentStageKey: LOADING_MESSAGES[0]
     });
     
     // Timer to cycle through messages and simulate progress
@@ -101,7 +104,8 @@ const App: React.FC = () => {
       setProcessing(prev => ({ 
         ...prev, 
         statusText: t[stage.key] || t.rendering,
-        progress: Math.floor(currentProgress)
+        progress: Math.floor(currentProgress),
+        currentStageKey: stage.key
       }));
     }, 200);
     
@@ -110,7 +114,7 @@ const App: React.FC = () => {
       const result = await generateEditedImage(selectedImage, prompt, aspectRatio, imageDimensions);
       
       if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
-      setProcessing(prev => ({ ...prev, progress: 100 }));
+      setProcessing(prev => ({ ...prev, progress: 100, currentStageKey: 'done' }));
       
       playSuccess();
       setResultImage(result);
@@ -165,7 +169,8 @@ const App: React.FC = () => {
       error: null,
       batchTotal: batchItems.length,
       batchCurrent: 1,
-      progress: 0
+      progress: 0,
+      currentStageKey: 'batch'
     });
 
     const results: string[] = [];
@@ -246,6 +251,12 @@ const App: React.FC = () => {
     }
   };
 
+  const handleEditorSave = (newImage: string) => {
+    setResultImage(newImage);
+    setShowEditor(false);
+    playSuccess();
+  };
+
   const reset = () => {
     playClick();
     if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
@@ -256,8 +267,9 @@ const App: React.FC = () => {
     setVideoUrl(null);
     setShowLiveView(false);
     setComparisonMode(false);
+    setShowEditor(false);
     setChatMessages([]);
-    setProcessing({ isLoading: false, statusText: '', error: null, progress: 0 });
+    setProcessing({ isLoading: false, statusText: '', error: null, progress: 0, currentStageKey: '' });
   };
 
   if (!selectedImage && !processing.error) {
@@ -384,7 +396,15 @@ const App: React.FC = () => {
 
           <section className="lg:col-span-5 p-8 flex flex-col h-full items-center space-y-8 overflow-y-auto custom-scrollbar animate-reveal">
              {processing.isLoading && (
-                <div className="w-full bg-black/60 border border-studio-neon/30 p-10 rounded-[4rem] space-y-8 animate-reveal backdrop-blur-3xl shadow-[0_0_100px_rgba(0,240,255,0.1)] relative overflow-hidden group">
+                <div className={`w-full bg-black/60 border border-studio-neon/30 p-10 rounded-[4rem] space-y-8 animate-reveal backdrop-blur-3xl shadow-[0_0_100px_rgba(0,240,255,0.1)] relative overflow-hidden group transition-all duration-1000 ${processing.currentStageKey === 'loadLighting' ? 'ring-2 ring-studio-neon/40' : ''}`}>
+                   {/* Load Lighting Visual Cues */}
+                   {processing.currentStageKey === 'loadLighting' && (
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
+                        <div className="absolute top-0 -left-1/4 w-1/2 h-full bg-gradient-to-r from-transparent via-studio-neon/20 to-transparent animate-shimmer-fast"></div>
+                        <div className="absolute bottom-0 -right-1/4 w-1/2 h-full bg-gradient-to-l from-transparent via-studio-gold/20 to-transparent animate-shimmer-fast" style={{ animationDelay: '1s' }}></div>
+                      </div>
+                   )}
+                   
                    <div className="absolute inset-0 bg-gradient-to-br from-studio-neon/5 to-transparent pointer-events-none"></div>
                    <div className="relative z-10 flex flex-col gap-6">
                       <div className="flex justify-between items-end">
@@ -402,7 +422,8 @@ const App: React.FC = () => {
                            className="h-full bg-gradient-to-r from-studio-neon via-studio-violet to-studio-gold shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-700 ease-out rounded-full relative overflow-hidden" 
                            style={{ width: `${processing.progress}%` }}
                          >
-                            <div className="absolute inset-0 bg-shimmer-fast opacity-50"></div>
+                            {/* Finalizing Shimmer Effect */}
+                            <div className={`absolute inset-0 bg-white/20 transition-opacity duration-1000 ${processing.currentStageKey === 'loadFinalizing' ? 'animate-shimmer-fast opacity-80' : 'animate-shimmer-fast opacity-30'}`}></div>
                          </div>
                       </div>
 
@@ -477,6 +498,23 @@ const App: React.FC = () => {
   }
 
   if (resultImage) {
+    if (showEditor) {
+      return (
+        <div className="min-h-screen bg-black text-white relative flex flex-col p-8">
+           <LivingBackground />
+           <header className="relative z-50 mb-8 flex justify-between items-center bg-black/40 p-6 rounded-3xl border border-white/10 backdrop-blur-2xl">
+              <h2 className="text-xl font-black uppercase tracking-[0.4em] text-studio-neon">{t.viewEdit}</h2>
+              <button onClick={() => setShowEditor(false)} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+           </header>
+           <div className="flex-1 relative z-10 overflow-hidden">
+             <ImageEditor imageSrc={resultImage} onSave={handleEditorSave} language={language} />
+           </div>
+        </div>
+      );
+    }
+
     const isBatch = batchItems.length > 0;
     return (
       <div className="min-h-screen bg-black text-white relative flex flex-col">
@@ -491,6 +529,7 @@ const App: React.FC = () => {
                  <button onClick={() => setShowLiveView(false)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!showLiveView ? 'bg-white/10 text-white' : 'text-gray-500'}`}>{t.viewStatic}</button>
                  <button onClick={() => { if(videoUrl) setShowLiveView(true); else handleAnimate(); }} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLiveView ? 'bg-studio-neon text-black' : 'text-gray-500'}`}>{t.viewLive}</button>
               </div>
+              <Button variant="secondary" className="px-6 h-12 rounded-xl text-[10px]" onClick={() => setShowEditor(true)}>{t.viewEdit}</Button>
               <Button variant="secondary" className="px-6 h-12 rounded-xl text-[10px]" onClick={reset}>{t.newGeneration}</Button>
               <a href={showLiveView && videoUrl ? videoUrl : resultImage} download={showLiveView ? "cinematic_live.webm" : "masterpiece.png"}>
                 <Button variant="gold" className="px-10 h-12 rounded-xl text-[10px]">{t.download}</Button>

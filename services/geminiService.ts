@@ -86,7 +86,7 @@ export const generateEditedImage = async (
 
     const candidate = response.candidates?.[0];
     if (!candidate) {
-      throw new Error("ERR_NO_CANDIDATE");
+      throw new Error("ERR_ENGINE_FAILURE");
     }
     
     if (candidate.finishReason === 'SAFETY') {
@@ -96,6 +96,7 @@ export const generateEditedImage = async (
     const parts = candidate.content?.parts || [];
     let textRefusal = "";
 
+    // Iterate through all parts to find the image part
     for (const part of parts) {
       if (part.inlineData?.data) {
         return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
@@ -105,8 +106,10 @@ export const generateEditedImage = async (
       }
     }
 
-    if (textRefusal.length > 0) {
-      if (textRefusal.toLowerCase().includes("safety") || textRefusal.toLowerCase().includes("cannot generate")) {
+    // If no image part was found, check if there's a textual refusal
+    if (textRefusal.trim().length > 0) {
+      const lowerText = textRefusal.toLowerCase();
+      if (lowerText.includes("safety") || lowerText.includes("cannot generate") || lowerText.includes("unable to")) {
         throw new Error("ERR_SAFETY");
       }
       throw new Error(textRefusal);
@@ -120,8 +123,10 @@ export const generateEditedImage = async (
     if (errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("429")) throw new Error("ERR_QUOTA");
     if (errorMsg.includes("INVALID_ARGUMENT")) throw new Error("ERR_INVALID_REQUEST");
     if (errorMsg.includes("ERR_FORMAT")) throw new Error("ERR_FORMAT");
+    if (errorMsg.includes("ERR_ENGINE_FAILURE")) throw new Error("ERR_ENGINE_FAILURE");
     
-    throw error;
+    // Catch-all for other API errors
+    throw new Error("ERR_GENERIC");
   }
 };
 

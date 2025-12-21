@@ -11,6 +11,7 @@ export interface ProcessingState {
   progress?: number; // 0-100
   batchTotal?: number;
   batchCurrent?: number;
+  currentStageKey?: string;
 }
 
 export type AspectRatio = '1:1' | '3:4' | '4:3' | '9:16' | '16:9' | 'AUTO';
