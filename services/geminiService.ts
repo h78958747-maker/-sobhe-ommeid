@@ -48,17 +48,15 @@ export const generateEditedImage = async (
     finalRatio = '1:1';
   }
 
-  const systemInstruction = `You are a world-class Cinematic Portrait Director and Visionary Image Synthesizer.
-  GOAL: Transform the input portrait into an ultra-hyper-realistic 4K masterpiece.
+  const systemInstruction = `You are a world-class Cinematic Portrait Director and Visionary Artist.
+  GOAL: Transform the input portrait into a high-end masterpiece, whether it's ultra-photorealistic or a professional digital painting.
   CRITICAL CONSTRAINTS:
-  1. ABSOLUTE IDENTITY: Maintain 100% of the person's identity, exact likeness, facial structure, and bone structure from the reference image. Do not replace the face.
-  2. MICRO-REALISM: Focus on natural skin pores, subtle wrinkles, authentic skin textures, and individually rendered hair strands for extreme realism (better than real life).
-  3. CRYSTALLINE EYES: Ensure eyes are tack-sharp with realistic reflections, moisture, and accurate iris details.
-  4. STUDIO LIGHTING: Use professional 3D cinematic lighting (dramatic yet soft) with realistic light falloff and shadows.
-  5. EDITORIAL STYLE: Output high-end editorial photography with professional color grading and a smooth shallow depth of field (bokeh).
-  6. SAFETY: Strictly adhere to safety guidelines; if an image cannot be generated due to safety, provide a concise explanation.
-  7. CONSISTENCY: Ensure every detail from the prompt is meticulously rendered.
-  ALWAYS prioritize the exact likeness and authentic skin/hair textures.`;
+  1. ABSOLUTE IDENTITY: Maintain 100% of the person's identity, exact likeness, and facial structure from the reference image.
+  2. TEXTURE PRECISION: Focus on authentic textures—if photorealistic, show skin pores and hair strands. If painted, show smooth airbrushed skin and painterly defined hair strands as requested.
+  3. MASTERPIECE QUALITY: Every output must be 4K, noise-free, and artistic in its specific style.
+  4. LIGHTING: Use professional studio-grade lighting with realistic falloff and shadows.
+  5. SAFETY: Strictly adhere to safety guidelines; if an image cannot be generated, provide a concise explanation.
+  ALWAYS prioritize the person's identity and the specific style request in the user prompt.`;
 
   try {
     const mimeType = getMimeType(base64Image);
@@ -73,8 +71,8 @@ export const generateEditedImage = async (
       contents: {
         parts: [
           { inlineData: { mimeType, data: cleanBase64(base64Image) } },
-          { text: `MASTER TASK: Synthesize an ultra-realistic 4K masterpiece portrait. 
-          REQUIREMENTS: Preserving the person's exact identity and facial structure with extreme accuracy. Face must look more realistic than real life, featuring natural skin pores, micro-textures, subtle wrinkles, and individually rendered hair strands. 
+          { text: `MASTER TASK: Synthesize a high-end masterpiece portrait based on the reference. 
+          REQUIREMENTS: Preserving the person's exact identity and facial structure with extreme accuracy. 
           STYLING: ${prompt}` },
         ],
       },
@@ -133,7 +131,7 @@ export const getPromptSuggestions = async (
   adjustments?: ImageAdjustments
 ): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "Analyze the image and request for cinematic enhancement. Return exactly 8 high-end professional photography keywords focusing on micro-details (e.g., 'subsurface skin scattering', 'anamorphic bokeh', 'hyper-realistic skin pores', 'individual hair strands') as a JSON array of strings.";
+  const systemInstruction = "Analyze the image and request for cinematic enhancement. Return exactly 8 high-end professional photography or artistic keywords focusing on textures and mood (e.g., 'digital airbrushing', 'anamorphic bokeh', 'hyper-realistic skin pores', 'painterly hair strands') as a JSON array of strings.";
 
   const parts: any[] = [];
   if (imageContext) {
@@ -168,7 +166,7 @@ export const sendChatMessage = async (
   imageContext?: string | null
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "You are a professional Cinema Director helping a user refine their portrait prompts for maximum realism. Focus on technical terms like lighting, depth of field, and micro-textures like skin pores and hair rendering.";
+  const systemInstruction = "You are a professional Artistic Director helping a user refine their portrait prompts for maximum quality. Focus on technical terms like lighting, depth of field, and textures—whether photorealistic or painterly.";
 
   const parts: any[] = [];
   if (imageContext) {
