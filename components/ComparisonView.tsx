@@ -4,9 +4,16 @@ import React, { useState, useRef, useEffect } from 'react';
 interface ComparisonViewProps {
   original: string;
   result: string;
+  labelLeft?: string;
+  labelRight?: string;
 }
 
-export const ComparisonView: React.FC<ComparisonViewProps> = ({ original, result }) => {
+export const ComparisonView: React.FC<ComparisonViewProps> = ({ 
+  original, 
+  result, 
+  labelLeft = "ORIGINAL", 
+  labelRight = "RESULT" 
+}) => {
   const [sliderPosition, setSliderPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -54,14 +61,14 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ original, result
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Background Image (Original) */}
+        {/* Background Image (Original / Left) */}
         <img 
           src={original} 
           alt="Original" 
           className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80 blur-[1px] grayscale-[30%]" 
         />
         
-        {/* Overlay Image (Result) - Clipped */}
+        {/* Overlay Image (Result / Right) - Clipped */}
         <div 
           className="absolute inset-0 w-full h-full overflow-hidden"
           style={{ clipPath: `polygon(${sliderPosition}% 0, 100% 0, 100% 100%, ${sliderPosition}% 100%)` }}
@@ -87,8 +94,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ original, result
         </div>
 
         {/* Labels */}
-        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur text-white px-3 py-1 rounded text-xs font-bold pointer-events-none">ORIGINAL</div>
-        <div className="absolute top-4 right-4 bg-studio-neon/80 backdrop-blur text-black px-3 py-1 rounded text-xs font-bold pointer-events-none">RESULT</div>
+        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur text-white px-3 py-1 rounded text-xs font-bold pointer-events-none">{labelLeft}</div>
+        <div className="absolute top-4 right-4 bg-studio-neon/80 backdrop-blur text-black px-3 py-1 rounded text-xs font-bold pointer-events-none">{labelRight}</div>
 
       </div>
     </div>

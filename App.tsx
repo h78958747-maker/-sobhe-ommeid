@@ -45,6 +45,10 @@ const App: React.FC = () => {
   const [showEditor, setShowEditor] = useState(false);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
+  // Batch Result-to-Result Comparison State
+  const [compareResultIds, setCompareResultIds] = useState<string[]>([]);
+  const [isComparingTwoResults, setIsComparingTwoResults] = useState(false);
+
   const t = translations[language];
   const loadingIntervalRef = useRef<number | null>(null);
 
@@ -214,7 +218,7 @@ const App: React.FC = () => {
       playSuccess();
       if (firstSuccessfulResult) {
         setResultImage(firstSuccessfulResult);
-        setSelectedImage(firstSuccessfulOriginal); // Set the correct original for comparison
+        setSelectedImage(firstSuccessfulOriginal);
         setVideoUrl(null);
         setShowLiveView(false);
       }
@@ -243,12 +247,43 @@ const App: React.FC = () => {
 
   const handleBatchResultSelect = (item: BatchItem) => {
     if (item.status !== 'done' || !item.result) return;
+    
+    // If we are currently in "multi-select for comparison" mode
+    if (compareResultIds.length > 0) {
+      playClick();
+      setCompareResultIds(prev => {
+        if (prev.includes(item.id)) return prev.filter(id => id !== item.id);
+        if (prev.length >= 2) return [prev[1], item.id];
+        return [...prev, item.id];
+      });
+      return;
+    }
+
     playClick();
     setResultImage(item.result);
-    setSelectedImage(item.original); // Update original to match result for comparison slider
+    setSelectedImage(item.original);
     setVideoUrl(null);
     setShowLiveView(false);
     setComparisonMode(false);
+    setIsComparingTwoResults(false);
+  };
+
+  const toggleBatchCompareMode = () => {
+    playClick();
+    if (compareResultIds.length > 0) {
+      setCompareResultIds([]);
+      setIsComparingTwoResults(false);
+    } else {
+      setCompareResultIds([]);
+    }
+  };
+
+  const startComparingTwoResults = () => {
+    if (compareResultIds.length !== 2) return;
+    playClick();
+    setIsComparingTwoResults(true);
+    setComparisonMode(true);
+    setShowLiveView(false);
   };
 
   const handleSendMessage = async (text: string) => {
@@ -286,6 +321,8 @@ const App: React.FC = () => {
     setComparisonMode(false);
     setShowEditor(false);
     setChatMessages([]);
+    setCompareResultIds([]);
+    setIsComparingTwoResults(false);
     setProcessing({ isLoading: false, statusText: '', error: null, progress: 0, currentStageKey: '' });
   };
 
@@ -531,6 +568,12 @@ const App: React.FC = () => {
     }
 
     const isBatch = batchItems.length > 0;
+    const isCompareSelectedActive = compareResultIds.length > 0;
+    const isComparingReady = compareResultIds.length === 2;
+
+    const leftImg = isComparingTwoResults ? batchItems.find(i => i.id === compareResultIds[0])?.result || "" : selectedImage!;
+    const rightImg = isComparingTwoResults ? batchItems.find(i => i.id === compareResultIds[1])?.result || "" : resultImage!;
+
     return (
       <div className="min-h-screen bg-black text-white relative flex flex-col">
         <LivingBackground />
@@ -541,8 +584,8 @@ const App: React.FC = () => {
            </div>
            <div className="flex gap-4">
               <div className="bg-white/5 p-1 rounded-xl flex border border-white/10 backdrop-blur-2xl mr-4">
-                 <button onClick={() => setShowLiveView(false)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!showLiveView ? 'bg-white/10 text-white' : 'text-gray-500'}`}>{t.viewStatic}</button>
-                 <button onClick={() => { if(videoUrl) setShowLiveView(true); else handleAnimate(); }} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLiveView ? 'bg-studio-neon text-black' : 'text-gray-500'}`}>{t.viewLive}</button>
+                 <button onClick={() => { setShowLiveView(false); setIsComparingTwoResults(false); }} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${(!showLiveView && !isComparingTwoResults) ? 'bg-white/10 text-white' : 'text-gray-500'}`}>{t.viewStatic}</button>
+                 <button onClick={() => { if(videoUrl) { setShowLiveView(true); setIsComparingTwoResults(false); } else handleAnimate(); }} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLiveView ? 'bg-studio-neon text-black' : 'text-gray-500'}`}>{t.viewLive}</button>
               </div>
               <Button variant="secondary" className="px-6 h-12 rounded-xl text-[10px]" onClick={() => setShowEditor(true)}>{t.viewEdit}</Button>
               <Button variant="secondary" className="px-6 h-12 rounded-xl text-[10px]" onClick={reset}>{t.newGeneration}</Button>
@@ -555,7 +598,14 @@ const App: React.FC = () => {
         <main className="flex-1 p-6 md:p-12 flex flex-col items-center justify-center animate-reveal gap-8 overflow-y-auto">
            <div className="w-full max-w-6xl shadow-glass-heavy rounded-[4rem] overflow-hidden border border-white/20 relative bg-black/40 backdrop-blur-3xl aspect-video md:aspect-auto">
               {comparisonMode ? (
-                <div className="h-[70vh]"><ComparisonView original={selectedImage!} result={resultImage!} /></div>
+                <div className="h-[70vh]">
+                   <ComparisonView 
+                     original={leftImg} 
+                     result={rightImg} 
+                     labelLeft={isComparingTwoResults ? "RESULT A" : "ORIGINAL"}
+                     labelRight={isComparingTwoResults ? "RESULT B" : "RESULT"}
+                   />
+                </div>
               ) : (
                 <div className="relative aspect-auto max-h-[75vh] flex items-center justify-center p-8 group">
                    {showLiveView && videoUrl ? (
@@ -570,7 +620,7 @@ const App: React.FC = () => {
                    )}
                    
                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-12 gap-4">
-                      <Button variant="primary" onClick={() => setComparisonMode(true)} className="px-8 h-14 rounded-full text-[10px] bg-black/40 backdrop-blur-3xl border-white/20 shadow-neon-blue hover:scale-110">
+                      <Button variant="primary" onClick={() => { setComparisonMode(true); setIsComparingTwoResults(false); }} className="px-8 h-14 rounded-full text-[10px] bg-black/40 backdrop-blur-3xl border-white/20 shadow-neon-blue hover:scale-110">
                         {t.viewCompare}
                       </Button>
                       {!videoUrl && (
@@ -584,18 +634,52 @@ const App: React.FC = () => {
            </div>
 
            {isBatch && (
-              <div className="flex gap-3 overflow-x-auto p-4 max-w-full custom-scrollbar bg-white/5 rounded-[2.5rem] border border-white/10">
-                 {batchItems.map((item) => (
-                    item.status === 'done' && (
-                      <button 
-                        key={item.id} 
-                        onClick={() => handleBatchResultSelect(item)}
-                        className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${resultImage === item.result ? 'border-studio-neon scale-110 shadow-neon-blue' : 'border-white/10 hover:border-white/30'}`}
-                      >
-                        <img src={item.result} className="w-full h-full object-cover" alt="Result Thumb" />
-                      </button>
-                    )
-                 ))}
+              <div className="w-full max-w-6xl space-y-4">
+                 <div className="flex justify-between items-center px-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">BATCH RESULTS GALLERY</span>
+                    <div className="flex gap-4">
+                       <button 
+                         onClick={toggleBatchCompareMode}
+                         className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${isCompareSelectedActive ? 'bg-studio-neon text-black border-studio-neon shadow-neon-blue' : 'bg-white/5 text-gray-500 border-white/10 hover:border-white/20'}`}
+                       >
+                         {isCompareSelectedActive ? `COMPARING (${compareResultIds.length}/2)` : 'COMPARE RESULTS'}
+                       </button>
+                       {isComparingReady && (
+                          <button 
+                            onClick={startComparingTwoResults}
+                            className="px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest bg-studio-gold text-black border-transparent shadow-neon-gold animate-bounce"
+                          >
+                            VIEW COMPARISON
+                          </button>
+                       )}
+                    </div>
+                 </div>
+                 <div className="flex gap-4 overflow-x-auto p-6 custom-scrollbar bg-white/5 rounded-[3rem] border border-white/10 backdrop-blur-3xl">
+                    {batchItems.map((item) => (
+                        item.status === 'done' && (
+                          <div key={item.id} className="relative flex-shrink-0 group">
+                             <button 
+                               onClick={() => handleBatchResultSelect(item)}
+                               className={`relative w-24 h-24 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+                                 resultImage === item.result && !isCompareSelectedActive ? 'border-studio-neon scale-110 shadow-neon-blue z-10' : 
+                                 compareResultIds.includes(item.id) ? 'border-studio-gold scale-110 shadow-neon-gold z-10' : 
+                                 'border-white/10 hover:border-white/30'
+                               }`}
+                             >
+                               <img src={item.result} className="w-full h-full object-cover" alt="Result Thumb" />
+                               {compareResultIds.includes(item.id) && (
+                                  <div className="absolute top-2 right-2 bg-studio-gold text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">
+                                     {compareResultIds.indexOf(item.id) + 1}
+                                  </div>
+                               )}
+                             </button>
+                             <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <span className="text-[8px] font-black text-gray-500 uppercase whitespace-nowrap">VIEW {batchItems.indexOf(item) + 1}</span>
+                             </div>
+                          </div>
+                        )
+                    ))}
+                 </div>
               </div>
            )}
         </main>
