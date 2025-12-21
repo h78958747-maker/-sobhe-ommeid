@@ -48,16 +48,34 @@ export const generateEditedImage = async (
     finalRatio = '1:1';
   }
 
-  // Strengthened instruction to ensure image output
-  const systemInstruction = "You are an expert cinematic image synthesizer. Your sole purpose is to transform input images into cinematic masterpieces. You MUST always output a new image part. Do not engage in conversation or provide text-only refusals unless the content is strictly prohibited by safety filters.";
+  const systemInstruction = `You are a world-class Cinematic Portrait Director and Visionary Image Synthesizer.
+  GOAL: Transform the input portrait into an ultra-hyper-realistic 4K masterpiece.
+  CRITICAL CONSTRAINTS:
+  1. ABSOLUTE IDENTITY: Maintain 100% of the person's identity, exact likeness, facial structure, and bone structure from the reference image. Do not replace the face.
+  2. MICRO-REALISM: Focus on natural skin pores, subtle wrinkles, authentic skin textures, and individually rendered hair strands for extreme realism (better than real life).
+  3. CRYSTALLINE EYES: Ensure eyes are tack-sharp with realistic reflections, moisture, and accurate iris details.
+  4. STUDIO LIGHTING: Use professional 3D cinematic lighting (dramatic yet soft) with realistic light falloff and shadows.
+  5. EDITORIAL STYLE: Output high-end editorial photography with professional color grading and a smooth shallow depth of field (bokeh).
+  6. SAFETY: Strictly adhere to safety guidelines; if an image cannot be generated due to safety, provide a concise explanation.
+  7. CONSISTENCY: Ensure every detail from the prompt is meticulously rendered.
+  ALWAYS prioritize the exact likeness and authentic skin/hair textures.`;
 
   try {
+    const mimeType = getMimeType(base64Image);
+    const supportedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif'];
+    
+    if (!supportedTypes.includes(mimeType)) {
+      throw new Error("ERR_FORMAT");
+    }
+
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
         parts: [
-          { inlineData: { mimeType: getMimeType(base64Image), data: cleanBase64(base64Image) } },
-          { text: `TASK: Transform this image into a cinematic masterpiece. REQUIREMENTS: ${prompt}` },
+          { inlineData: { mimeType, data: cleanBase64(base64Image) } },
+          { text: `MASTER TASK: Synthesize an ultra-realistic 4K masterpiece portrait. 
+          REQUIREMENTS: Preserving the person's exact identity and facial structure with extreme accuracy. Face must look more realistic than real life, featuring natural skin pores, micro-textures, subtle wrinkles, and individually rendered hair strands. 
+          STYLING: ${prompt}` },
         ],
       },
       config: {
@@ -80,7 +98,6 @@ export const generateEditedImage = async (
     const parts = candidate.content?.parts || [];
     let textRefusal = "";
 
-    // Iterate through all parts to find the image
     for (const part of parts) {
       if (part.inlineData?.data) {
         return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
@@ -90,16 +107,22 @@ export const generateEditedImage = async (
       }
     }
 
-    // Handle cases where the model only returns text
     if (textRefusal.length > 0) {
+      if (textRefusal.toLowerCase().includes("safety") || textRefusal.toLowerCase().includes("cannot generate")) {
+        throw new Error("ERR_SAFETY");
+      }
       throw new Error(textRefusal);
     }
 
-    throw new Error("The creative engine failed to synthesize a valid frame. Please try a simpler prompt or a clearer source image.");
+    throw new Error("ERR_ENGINE_FAILURE");
   } catch (error: any) {
-    if (error.message?.toUpperCase().includes("SAFETY")) {
-      throw new Error("ERR_SAFETY");
-    }
+    const errorMsg = error.message?.toUpperCase() || "";
+    
+    if (errorMsg.includes("SAFETY")) throw new Error("ERR_SAFETY");
+    if (errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("429")) throw new Error("ERR_QUOTA");
+    if (errorMsg.includes("INVALID_ARGUMENT")) throw new Error("ERR_INVALID_REQUEST");
+    if (errorMsg.includes("ERR_FORMAT")) throw new Error("ERR_FORMAT");
+    
     throw error;
   }
 };
@@ -110,13 +133,13 @@ export const getPromptSuggestions = async (
   adjustments?: ImageAdjustments
 ): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "Analyze the image and prompt. Return exactly 8 cinematic keywords as a JSON array of strings.";
+  const systemInstruction = "Analyze the image and request for cinematic enhancement. Return exactly 8 high-end professional photography keywords focusing on micro-details (e.g., 'subsurface skin scattering', 'anamorphic bokeh', 'hyper-realistic skin pores', 'individual hair strands') as a JSON array of strings.";
 
   const parts: any[] = [];
   if (imageContext) {
     parts.push({ inlineData: { mimeType: getMimeType(imageContext), data: cleanBase64(imageContext) } });
   }
-  parts.push({ text: `Current Prompt: ${currentPrompt}. Technical Context: ${JSON.stringify(adjustments)}` });
+  parts.push({ text: `Current Prompt: ${currentPrompt}. Adjustments: ${JSON.stringify(adjustments)}` });
 
   try {
     const response = await ai.models.generateContent({
@@ -145,7 +168,7 @@ export const sendChatMessage = async (
   imageContext?: string | null
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "You are a professional Cinematic Director. Help the user refine their artistic vision. Keep responses concise and creative.";
+  const systemInstruction = "You are a professional Cinema Director helping a user refine their portrait prompts for maximum realism. Focus on technical terms like lighting, depth of field, and micro-textures like skin pores and hair rendering.";
 
   const parts: any[] = [];
   if (imageContext) {

@@ -1,18 +1,19 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ImageUpload } from './components/ImageUpload';
 import { Button } from './components/Button';
 import { ComparisonView } from './components/ComparisonView';
 import { generateEditedImage, sendChatMessage } from './services/geminiService';
 import { saveHistoryItem } from './services/storageService';
-import { DEFAULT_PROMPT, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LIGHTING_ICONS, COLOR_ICONS } from './constants';
+import { generateInstantVideo } from './services/clientVideoService';
+import { DEFAULT_PROMPT, LIGHTING_STYLES, COLOR_GRADING_STYLES, PROMPT_SUGGESTIONS, LIGHTING_ICONS, COLOR_ICONS, LOADING_MESSAGES } from './constants';
 import { ProcessingState, AspectRatio, Language, LightingIntensity, ColorGradingStyle, ChatMessage, BatchItem } from './types';
 import { translations } from './translations';
 import { LivingBackground } from './components/LivingBackground';
 import { HistoryGallery } from './components/HistoryGallery';
 import { ImageEditor } from './components/ImageEditor';
 import { ChatInterface } from './components/ChatInterface';
-import { playSuccess, playError, playClick } from './services/audioService';
+import { playSuccess, playError, playClick, playUpload } from './services/audioService';
 
 const APP_LOGO = "https://dl1.negarestock.ir/S/p/2024/10/4/1728068570_31103_Untitled-1.jpg";
 
@@ -22,12 +23,14 @@ const App: React.FC = () => {
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [imageDimensions, setImageDimensions] = useState<{width: number, height: number} | undefined>(undefined);
   const [resultImage, setResultImage] = useState<string | null>(null);
-  const [batchResults, setBatchResults] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [description, setDescription] = useState('');
   const [processing, setProcessing] = useState<ProcessingState>({
     isLoading: false,
     statusText: '',
     error: null,
+    progress: 0,
     batchCurrent: 0,
     batchTotal: 0
   });
@@ -37,9 +40,11 @@ const App: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
+  const [showLiveView, setShowLiveView] = useState(false);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
   const t = translations[language];
+  const loadingIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     document.documentElement.dir = language === 'fa' ? 'rtl' : 'ltr';
@@ -56,14 +61,61 @@ const App: React.FC = () => {
   const handleGenerate = useCallback(async () => {
     if (!selectedImage || processing.isLoading) return;
     playClick();
-    setProcessing({ isLoading: true, statusText: t.rendering, error: null });
+
+    // Reset processing state
+    const initialStatus = t[LOADING_MESSAGES[0]] || t.rendering;
+    setProcessing({ 
+      isLoading: true, 
+      statusText: initialStatus, 
+      error: null, 
+      progress: 5 
+    });
+    
+    // Timer to cycle through messages and simulate progress
+    const stages = [
+      { key: LOADING_MESSAGES[0], targetProgress: 30, time: 2000 },
+      { key: LOADING_MESSAGES[1], targetProgress: 60, time: 5000 },
+      { key: LOADING_MESSAGES[2], targetProgress: 95, time: 10000 },
+    ];
+
+    let currentStageIndex = 0;
+    const startTime = Date.now();
+
+    loadingIntervalRef.current = window.setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      
+      // Determine current stage based on elapsed time
+      if (currentStageIndex < stages.length - 1 && elapsed > stages[currentStageIndex + 1].time) {
+        currentStageIndex++;
+      }
+
+      const stage = stages[currentStageIndex];
+      const prevStageProgress = currentStageIndex > 0 ? stages[currentStageIndex - 1].targetProgress : 5;
+      const stageDuration = currentStageIndex > 0 ? stage.time - stages[currentStageIndex - 1].time : stage.time;
+      const stageElapsed = currentStageIndex > 0 ? elapsed - stages[currentStageIndex - 1].time : elapsed;
+      
+      // Interpolate progress within the stage
+      const stagePercent = Math.min(stageElapsed / stageDuration, 1);
+      const currentProgress = prevStageProgress + (stage.targetProgress - prevStageProgress) * stagePercent;
+
+      setProcessing(prev => ({ 
+        ...prev, 
+        statusText: t[stage.key] || t.rendering,
+        progress: Math.floor(currentProgress)
+      }));
+    }, 200);
     
     try {
       const prompt = `${DEFAULT_PROMPT} style: ${LIGHTING_STYLES[lighting]}, colors: ${COLOR_GRADING_STYLES[colorGrading]}. ${description}`;
       const result = await generateEditedImage(selectedImage, prompt, aspectRatio, imageDimensions);
       
+      if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
+      setProcessing(prev => ({ ...prev, progress: 100 }));
+      
       playSuccess();
       setResultImage(result);
+      setVideoUrl(null);
+      setShowLiveView(false);
       
       await saveHistoryItem({
         id: Date.now().toString(),
@@ -77,13 +129,31 @@ const App: React.FC = () => {
       });
 
     } catch (err: any) {
+      if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
       console.error(err);
       playError();
-      setProcessing(prev => ({ ...prev, error: err.message === "ERR_SAFETY" ? "ERR_SAFETY" : err.message }));
+      setProcessing(prev => ({ ...prev, error: err.message || "ERR_GENERIC" }));
     } finally {
       setProcessing(prev => ({ ...prev, isLoading: false }));
     }
   }, [selectedImage, lighting, colorGrading, description, aspectRatio, imageDimensions, t, processing.isLoading]);
+
+  const handleAnimate = async () => {
+    if (!resultImage || isAnimating) return;
+    playClick();
+    setIsAnimating(true);
+    try {
+      const url = await generateInstantVideo(resultImage);
+      setVideoUrl(url);
+      setShowLiveView(true);
+      playSuccess();
+    } catch (err) {
+      console.error("Animation failed", err);
+      playError();
+    } finally {
+      setIsAnimating(false);
+    }
+  };
 
   const handleBatchGenerate = useCallback(async () => {
     if (batchItems.length === 0 || processing.isLoading) return;
@@ -94,7 +164,8 @@ const App: React.FC = () => {
       statusText: t.rendering, 
       error: null,
       batchTotal: batchItems.length,
-      batchCurrent: 1
+      batchCurrent: 1,
+      progress: 0
     });
 
     const results: string[] = [];
@@ -102,7 +173,7 @@ const App: React.FC = () => {
 
     try {
       for (let i = 0; i < batchItems.length; i++) {
-        setProcessing(prev => ({ ...prev, batchCurrent: i + 1 }));
+        setProcessing(prev => ({ ...prev, batchCurrent: i + 1, progress: Math.round(((i + 1) / batchItems.length) * 100) }));
         updatedBatch[i].status = 'processing';
         setBatchItems([...updatedBatch]);
 
@@ -130,11 +201,14 @@ const App: React.FC = () => {
         setBatchItems([...updatedBatch]);
       }
       playSuccess();
-      setBatchResults(results);
-      if (results.length > 0) setResultImage(results[0]);
+      if (results.length > 0) {
+        setResultImage(results[0]);
+        setVideoUrl(null);
+        setShowLiveView(false);
+      }
     } catch (err: any) {
       playError();
-      setProcessing(prev => ({ ...prev, error: "Batch processing failed." }));
+      setProcessing(prev => ({ ...prev, error: "ERR_GENERIC" }));
     } finally {
       setProcessing(prev => ({ ...prev, isLoading: false }));
     }
@@ -174,17 +248,17 @@ const App: React.FC = () => {
 
   const reset = () => {
     playClick();
+    if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
     setSelectedImage(null);
     setBatchItems([]);
-    setBatchResults([]);
     setImageDimensions(undefined);
     setResultImage(null);
+    setVideoUrl(null);
+    setShowLiveView(false);
     setComparisonMode(false);
     setChatMessages([]);
-    setProcessing({ isLoading: false, statusText: '', error: null });
+    setProcessing({ isLoading: false, statusText: '', error: null, progress: 0 });
   };
-
-  // --- UI RENDER SECTIONS ---
 
   if (!selectedImage && !processing.error) {
     return (
@@ -195,7 +269,7 @@ const App: React.FC = () => {
             <img src={APP_LOGO} alt="Logo" className="w-14 h-14 rounded-2xl shadow-neon-blue animate-logo-cinema object-cover border border-white/10" />
             <div>
               <h1 className="text-xl font-black tracking-tighter uppercase text-white">موسسه صبح امید</h1>
-              <span className="text-[9px] text-studio-neon uppercase tracking-[0.4em] font-bold opacity-70">STUDIO CRYSTAL v4.2</span>
+              <span className="text-[9px] text-studio-neon uppercase tracking-[0.4em] font-bold opacity-70">STUDIO CRYSTAL v4.5</span>
             </div>
           </div>
           <div className="flex bg-white/5 backdrop-blur-2xl rounded-2xl p-1 border border-white/10">
@@ -223,6 +297,8 @@ const App: React.FC = () => {
                 language={language}
                 allowMultiple={true}
                 className="h-[400px]"
+                currentAspectRatio={aspectRatio}
+                onAspectRatioChange={setAspectRatio}
               />
             </div>
           </div>
@@ -241,7 +317,7 @@ const App: React.FC = () => {
              <img src={APP_LOGO} className="w-10 h-10 rounded-xl shadow-neon-blue border border-white/20 animate-logo-cinema" alt="logo" />
              <div className="hidden md:block">
                <h1 className="text-sm font-black uppercase tracking-widest">موسسه صبح امید</h1>
-               <p className="text-[8px] text-studio-neon font-bold uppercase opacity-60 italic">Crystal Engine Rendering</p>
+               <p className="text-[8px] text-studio-neon font-bold uppercase opacity-60 italic">Crystal Engine v4.5 Rendering</p>
              </div>
            </div>
            
@@ -262,7 +338,6 @@ const App: React.FC = () => {
         </header>
 
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden relative z-10">
-          {/* Settings Sidebar */}
           <aside className="lg:col-span-3 border-r border-white/10 p-8 space-y-8 overflow-y-auto bg-white/5 backdrop-blur-3xl animate-slide-in-left custom-scrollbar">
              <div className="space-y-6">
                 <div className="flex items-center gap-3 text-studio-gold">
@@ -274,7 +349,7 @@ const App: React.FC = () => {
                   <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{t.aspectRatio}</label>
                   <div className="grid grid-cols-3 gap-2">
                     {(['AUTO', '1:1', '4:3', '16:9', '9:16', '3:4'] as AspectRatio[]).map(ratio => (
-                      <button key={ratio} onClick={() => setAspectRatio(ratio)} className={`py-3 text-[9px] font-black border rounded-xl transition-all ${aspectRatio === ratio ? 'border-studio-neon text-studio-neon bg-studio-neon/10' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'}`}>
+                      <button key={ratio} disabled={processing.isLoading} onClick={() => setAspectRatio(ratio)} className={`py-3 text-[9px] font-black border rounded-xl transition-all ${aspectRatio === ratio ? 'border-studio-neon text-studio-neon bg-studio-neon/10' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'} disabled:opacity-50`}>
                         {ratio === 'AUTO' ? t.ratioAuto : ratio}
                       </button>
                     ))}
@@ -285,7 +360,7 @@ const App: React.FC = () => {
                   <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{t.lightingIntensity}</label>
                   <div className="grid grid-cols-2 gap-2">
                     {(Object.keys(LIGHTING_STYLES) as LightingIntensity[]).map(l => (
-                      <button key={l} onClick={() => setLighting(l)} className={`p-4 border rounded-2xl flex flex-col items-center gap-2 transition-all ${lighting === l ? 'border-studio-neon bg-studio-neon/10 text-studio-neon' : 'border-white/5 bg-white/5 text-gray-400 hover:border-white/20'}`}>
+                      <button key={l} disabled={processing.isLoading} onClick={() => setLighting(l)} className={`p-4 border rounded-2xl flex flex-col items-center gap-2 transition-all ${lighting === l ? 'border-studio-neon bg-studio-neon/10 text-studio-neon' : 'border-white/5 bg-white/5 text-gray-400 hover:border-white/20'} disabled:opacity-50`}>
                         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d={LIGHTING_ICONS[l]} strokeWidth={1.5} /></svg>
                         <span className="text-[8px] font-black uppercase tracking-widest">{t[`light${l.charAt(0).toUpperCase() + l.slice(1)}` as keyof typeof t]}</span>
                       </button>
@@ -297,7 +372,7 @@ const App: React.FC = () => {
                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{t.colorGrading}</label>
                    <div className="space-y-2">
                       {(Object.keys(COLOR_GRADING_STYLES) as ColorGradingStyle[]).map(style => (
-                        <button key={style} onClick={() => setColorGrading(style)} className={`w-full py-4 px-5 flex items-center gap-4 text-[9px] font-black border rounded-xl transition-all ${colorGrading === style ? 'border-studio-neon text-studio-neon bg-studio-neon/10' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'}`}>
+                        <button key={style} disabled={processing.isLoading} onClick={() => setColorGrading(style)} className={`w-full py-4 px-5 flex items-center gap-4 text-[9px] font-black border rounded-xl transition-all ${colorGrading === style ? 'border-studio-neon text-studio-neon bg-studio-neon/10' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'} disabled:opacity-50`}>
                           <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d={COLOR_ICONS[style]} strokeWidth={2}/></svg>
                           {style.replace('_', ' ').toUpperCase()}
                         </button>
@@ -307,17 +382,44 @@ const App: React.FC = () => {
              </div>
           </aside>
 
-          {/* Canvas Section */}
           <section className="lg:col-span-5 p-8 flex flex-col h-full items-center space-y-8 overflow-y-auto custom-scrollbar animate-reveal">
-             {processing.isLoading && isBatch && (
-                <div className="w-full bg-white/5 border border-white/10 p-6 rounded-[2rem] space-y-4 animate-pulse">
-                   <div className="flex justify-between items-center text-[10px] font-black uppercase text-studio-neon">
-                      <span>{t.batchStatus.replace('{current}', String(processing.batchCurrent)).replace('{total}', String(processing.batchTotal))}</span>
-                      <span>{Math.round(((processing.batchCurrent || 0) / (processing.batchTotal || 1)) * 100)}%</span>
+             {processing.isLoading && (
+                <div className="w-full bg-black/60 border border-studio-neon/30 p-10 rounded-[4rem] space-y-8 animate-reveal backdrop-blur-3xl shadow-[0_0_100px_rgba(0,240,255,0.1)] relative overflow-hidden group">
+                   <div className="absolute inset-0 bg-gradient-to-br from-studio-neon/5 to-transparent pointer-events-none"></div>
+                   <div className="relative z-10 flex flex-col gap-6">
+                      <div className="flex justify-between items-end">
+                         <div className="space-y-3">
+                            <h4 className="text-sm font-black uppercase tracking-[0.5em] text-studio-neon animate-pulse">{processing.statusText}</h4>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{isBatch ? t.batchMode : 'PREMIUM 4K NEURAL SYNTHESIS'}</p>
+                         </div>
+                         <div className="text-right">
+                            <span className="text-4xl font-black text-white font-mono drop-shadow-neon-blue">{processing.progress}%</span>
+                         </div>
+                      </div>
+                      
+                      <div className="w-full h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 p-1">
+                         <div 
+                           className="h-full bg-gradient-to-r from-studio-neon via-studio-violet to-studio-gold shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-700 ease-out rounded-full relative overflow-hidden" 
+                           style={{ width: `${processing.progress}%` }}
+                         >
+                            <div className="absolute inset-0 bg-shimmer-fast opacity-50"></div>
+                         </div>
+                      </div>
+
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-gray-600">
+                         <span>Phase {processing.progress < 30 ? '01' : processing.progress < 60 ? '02' : '03'}</span>
+                         <span>Refining Micro-Textures</span>
+                         <span>Sub-pixel Precision</span>
+                      </div>
                    </div>
-                   <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-studio-neon shadow-neon-blue transition-all duration-700" style={{ width: `${((processing.batchCurrent || 0) / (processing.batchTotal || 1)) * 100}%` }}></div>
-                   </div>
+
+                   {isBatch && (
+                      <div className="text-center pt-4 border-t border-white/5 relative z-10">
+                         <span className="text-[11px] font-black text-studio-gold uppercase tracking-[0.3em]">
+                           {t.batchStatus.replace('{current}', String(processing.batchCurrent)).replace('{total}', String(processing.batchTotal))}
+                         </span>
+                      </div>
+                   )}
                 </div>
              )}
 
@@ -336,7 +438,7 @@ const App: React.FC = () => {
                       ))}
                    </div>
                 ) : (
-                   <div className="w-full max-w-xl aspect-square relative rounded-[3rem] overflow-hidden border border-white/10 bg-black/40 group shadow-glass-heavy">
+                   <div className={`w-full max-w-xl aspect-square relative rounded-[3rem] overflow-hidden border border-white/10 bg-black/40 group shadow-glass-heavy transition-all duration-700 ${processing.isLoading ? 'opacity-30 scale-95 blur-sm' : 'opacity-100 scale-100 blur-0'}`}>
                       <img src={selectedImage} alt="Monitor" className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-1000" />
                    </div>
                 )}
@@ -347,11 +449,12 @@ const App: React.FC = () => {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t.chatPlaceholder}
+                  disabled={processing.isLoading}
                   className="w-full bg-transparent border-none text-sm text-white placeholder:text-gray-600 focus:ring-0 resize-none min-h-[80px]"
                 />
                 <div className="flex flex-wrap gap-2">
                    {PROMPT_SUGGESTIONS.map(s => (
-                     <button key={s.id} onClick={() => setDescription(s.prompt)} className="px-4 py-2 rounded-full border border-white/5 bg-white/5 text-[9px] font-black uppercase text-gray-500 hover:text-studio-neon hover:border-studio-neon transition-all">
+                     <button key={s.id} disabled={processing.isLoading} onClick={() => setDescription(s.prompt)} className="px-4 py-2 rounded-full border border-white/5 bg-white/5 text-[9px] font-black uppercase text-gray-500 hover:text-studio-neon hover:border-studio-neon transition-all disabled:opacity-50">
                         {s.labelKey}
                      </button>
                    ))}
@@ -359,7 +462,6 @@ const App: React.FC = () => {
              </div>
           </section>
 
-          {/* Chat Section */}
           <section className="lg:col-span-4 border-l border-white/10 bg-white/5 backdrop-blur-3xl animate-slide-in-right">
              <ChatInterface 
                 messages={chatMessages}
@@ -374,28 +476,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Result and Error stages
-  if (processing.error) {
-     return (
-       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
-         <LivingBackground />
-         <div className="max-w-xl w-full bg-red-500/5 border border-red-500/20 rounded-[4rem] p-16 text-center space-y-10 relative z-10 backdrop-blur-3xl animate-reveal shadow-glass-heavy">
-           <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-500">
-             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeWidth={2.5}/></svg>
-           </div>
-           <div className="space-y-2">
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-red-500">{processing.error === 'ERR_SAFETY' ? t.ERR_SAFETY : t.ERR_GENERIC}</h2>
-              <p className="text-gray-400 text-sm">{processing.error === 'ERR_SAFETY' ? t.ERR_SAFETY_DESC : processing.error}</p>
-           </div>
-           <div className="flex gap-4">
-             <Button variant="gold" className="flex-1 rounded-2xl" onClick={handleGenerate}>{t.TRY_AGAIN}</Button>
-             <Button variant="secondary" className="flex-1 rounded-2xl" onClick={reset}>{t.BACK_TO_STUDIO}</Button>
-           </div>
-         </div>
-       </div>
-     );
-  }
-
   if (resultImage) {
     const isBatch = batchItems.length > 0;
     return (
@@ -407,24 +487,43 @@ const App: React.FC = () => {
              <h1 className="text-sm font-black uppercase tracking-widest">موسسه صبح امید</h1>
            </div>
            <div className="flex gap-4">
+              <div className="bg-white/5 p-1 rounded-xl flex border border-white/10 backdrop-blur-2xl mr-4">
+                 <button onClick={() => setShowLiveView(false)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${!showLiveView ? 'bg-white/10 text-white' : 'text-gray-500'}`}>{t.viewStatic}</button>
+                 <button onClick={() => { if(videoUrl) setShowLiveView(true); else handleAnimate(); }} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${showLiveView ? 'bg-studio-neon text-black' : 'text-gray-500'}`}>{t.viewLive}</button>
+              </div>
               <Button variant="secondary" className="px-6 h-12 rounded-xl text-[10px]" onClick={reset}>{t.newGeneration}</Button>
-              <a href={resultImage} download="masterpiece.png">
+              <a href={showLiveView && videoUrl ? videoUrl : resultImage} download={showLiveView ? "cinematic_live.webm" : "masterpiece.png"}>
                 <Button variant="gold" className="px-10 h-12 rounded-xl text-[10px]">{t.download}</Button>
               </a>
            </div>
         </header>
 
         <main className="flex-1 p-6 md:p-12 flex flex-col items-center justify-center animate-reveal gap-8 overflow-y-auto">
-           <div className="w-full max-w-6xl shadow-glass-heavy rounded-[4rem] overflow-hidden border border-white/20 relative bg-black/40 backdrop-blur-3xl">
+           <div className="w-full max-w-6xl shadow-glass-heavy rounded-[4rem] overflow-hidden border border-white/20 relative bg-black/40 backdrop-blur-3xl aspect-video md:aspect-auto">
               {comparisonMode ? (
                 <div className="h-[70vh]"><ComparisonView original={selectedImage!} result={resultImage!} /></div>
               ) : (
                 <div className="relative aspect-auto max-h-[75vh] flex items-center justify-center p-8 group">
-                   <img src={resultImage} alt="result" className="max-w-full max-h-[70vh] object-contain rounded-[3rem] shadow-2xl transition-all duration-1000 group-hover:scale-105" />
-                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-12">
-                      <Button variant="primary" onClick={() => setComparisonMode(true)} className="px-12 h-16 rounded-full text-[11px] bg-black/40 backdrop-blur-3xl border-white/20 shadow-neon-blue hover:scale-110">
+                   {showLiveView && videoUrl ? (
+                      <video 
+                        src={videoUrl} 
+                        autoPlay 
+                        loop 
+                        className="max-w-full max-h-[70vh] object-contain rounded-[3rem] shadow-2xl"
+                      />
+                   ) : (
+                      <img src={resultImage} alt="result" className="max-w-full max-h-[70vh] object-contain rounded-[3rem] shadow-2xl transition-all duration-1000 group-hover:scale-105" />
+                   )}
+                   
+                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-12 gap-4">
+                      <Button variant="primary" onClick={() => setComparisonMode(true)} className="px-8 h-14 rounded-full text-[10px] bg-black/40 backdrop-blur-3xl border-white/20 shadow-neon-blue hover:scale-110">
                         {t.viewCompare}
                       </Button>
+                      {!videoUrl && (
+                        <Button variant="gold" onClick={handleAnimate} isLoading={isAnimating} className="px-8 h-14 rounded-full text-[10px] shadow-neon-gold border-0 hover:scale-110">
+                           {t.animate}
+                        </Button>
+                      )}
                    </div>
                 </div>
               )}
@@ -436,7 +535,7 @@ const App: React.FC = () => {
                     item.status === 'done' && (
                       <button 
                         key={item.id} 
-                        onClick={() => { setResultImage(item.result!); setComparisonMode(false); }}
+                        onClick={() => { setResultImage(item.result!); setVideoUrl(null); setShowLiveView(false); setComparisonMode(false); }}
                         className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${resultImage === item.result ? 'border-studio-neon scale-110 shadow-neon-blue' : 'border-white/10 hover:border-white/30'}`}
                       >
                         <img src={item.result} className="w-full h-full object-cover" alt="Result Thumb" />
@@ -448,6 +547,32 @@ const App: React.FC = () => {
         </main>
       </div>
     );
+  }
+
+  if (processing.error) {
+     const errKey = processing.error as keyof typeof t;
+     const displayTitle = t[errKey] || t.ERR_GENERIC;
+     const displayDesc = t[`${String(errKey)}_DESC` as keyof typeof t] || processing.error;
+
+     return (
+       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+         <LivingBackground />
+         <div className="max-w-2xl w-full bg-red-500/5 border border-red-500/20 rounded-[4rem] p-12 md:p-16 text-center space-y-10 relative z-10 backdrop-blur-3xl animate-reveal shadow-glass-heavy">
+           <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-500 shadow-lg shadow-red-500/10">
+             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeWidth={2.5}/></svg>
+           </div>
+           <div className="space-y-4">
+              <h2 className="text-3xl font-black uppercase tracking-tighter text-red-500">{displayTitle}</h2>
+              <p className="text-gray-400 text-base leading-relaxed max-w-md mx-auto">{displayDesc}</p>
+           </div>
+           <div className="flex flex-col sm:flex-row gap-4 pt-4">
+             <Button variant="gold" className="flex-1 rounded-2xl h-16" onClick={handleGenerate}>{t.TRY_AGAIN}</Button>
+             <Button variant="secondary" className="flex-1 rounded-2xl h-16" onClick={reset}>{t.BACK_TO_STUDIO}</Button>
+           </div>
+           <p className="text-[10px] text-gray-600 uppercase tracking-widest pt-4">Internal Error ID: {processing.error}</p>
+         </div>
+       </div>
+     );
   }
 
   return null;

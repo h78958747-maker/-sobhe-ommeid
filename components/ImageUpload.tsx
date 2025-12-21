@@ -1,9 +1,10 @@
 
+// Import React to resolve 'Cannot find namespace React' errors
 import React, { useRef, useState } from 'react';
 import { Button } from './Button';
-import { BatchItem, Language } from '../types';
+import { AspectRatio, BatchItem, Language } from '../types';
 import { PromptAssistant } from './PromptAssistant';
-import { playUpload } from '../services/audioService';
+import { playUpload, playClick } from '../services/audioService';
 import { translations } from '../translations';
 
 interface ImageUploadProps {
@@ -16,13 +17,15 @@ interface ImageUploadProps {
   title?: string;
   className?: string;
   onOpenCamera?: () => void;
-  aspectRatio?: string; 
+  currentAspectRatio?: AspectRatio;
+  onAspectRatioChange?: (ratio: AspectRatio) => void;
   descriptionLabel?: string;
   descriptionPlaceholder?: string;
   allowMultiple?: boolean;
   language: Language;
 }
 
+// Fixed: Added React import to satisfy React.FC type
 export const ImageUpload: React.FC<ImageUploadProps> = ({ 
   onImageSelected, 
   onDimensionsDetected,
@@ -33,7 +36,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   title,
   className = "",
   onOpenCamera,
-  aspectRatio = "1:1",
+  currentAspectRatio = "AUTO",
+  onAspectRatioChange,
   descriptionLabel = "Description",
   descriptionPlaceholder = "Describe image...",
   allowMultiple = false,
@@ -44,6 +48,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const t = translations[language];
 
+  // Fixed: Added React.ChangeEvent type
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
   };
@@ -57,7 +62,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const handleFiles = (files: FileList) => {
-    // Increased limit to 20 images
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, allowMultiple ? 20 : 1);
     
     if (validFiles.length > 0) {
@@ -94,12 +98,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
+  // Fixed: Added React.DragEvent type
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
     else if (e.type === "dragleave") setDragActive(false);
   };
 
+  // Fixed: Added React.DragEvent type
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
     setDragActive(false);
@@ -112,6 +118,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     const newDesc = cleanDesc ? `${cleanDesc}, ${suggestion}` : suggestion;
     onDescriptionChange(newDesc);
   };
+
+  const ratios: AspectRatio[] = ['AUTO', '1:1', '4:3', '16:9', '9:16', '3:4'];
 
   return (
     <div className={`w-full group/container space-y-4 ${className}`}>
@@ -196,6 +204,25 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               </button>
             </div>
           )}
+
+          {/* Ratio Selector Integrated into Upload Area */}
+          <div className="space-y-3">
+             <label className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" /></svg>
+                {t.aspectRatio}
+             </label>
+             <div className="flex flex-wrap gap-2">
+                {ratios.map(ratio => (
+                  <button 
+                    key={ratio} 
+                    onClick={() => { playClick(); onAspectRatioChange?.(ratio); }} 
+                    className={`px-4 py-2 text-[9px] font-black border rounded-xl transition-all ${currentAspectRatio === ratio ? 'border-studio-neon text-studio-neon bg-studio-neon/10' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'}`}
+                  >
+                    {ratio === 'AUTO' ? t.ratioAuto : ratio}
+                  </button>
+                ))}
+             </div>
+          </div>
           
           <div className="space-y-6 animate-fade-in">
             <div className="space-y-3">

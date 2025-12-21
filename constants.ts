@@ -1,18 +1,18 @@
 
 import { QualityMode, LightingIntensity, ColorGradingStyle, PromptSuggestion } from "./types";
 
-export const DEFAULT_PROMPT = `Cinematic studio masterpiece, 8k ultra-detailed, professional color grading, anamorphic lens flares, volumetric lighting, high-end cinema camera textures, hyper-realistic skin and fabric, masterpiece composition.`;
+export const DEFAULT_PROMPT = `Ultra-hyper-realistic, hyper-detailed cinematic studio portrait. Preserves 100% identity and exact facial structure of the person with maximum precision. The face is more realistic than real life, featuring natural skin pores, micro-textures, subtle wrinkles, fine facial details, and individual hair strands rendered with absolute clarity. Focus on eyes: realistic reflections, natural moisture, sharp tack-focus, lifelike depth, and accurate iris color. Soft yet dramatic cinematic studio lighting with realistic 3D shadows and smooth light falloff. High-end editorial photography style, vibrant yet natural skin tones, balanced contrast, and professional cinematic color grading. Background is bright, elegant, and attractive, separated by a smooth shallow depth of field (bokeh). 4K resolution, masterpiece quality, noise-free, extreme clarity in every detail.`;
 
 export const QUALITY_MODIFIERS: Record<QualityMode, string> = {
-  standard: ", sharp focus, cinematic photography",
-  high: ", masterpiece cinematic rendering, photorealistic, extreme 8k detail, flawless movie finish, ray-traced reflections"
+  standard: ", sharp textures, realistic facial features",
+  high: ", extreme micro-detail enhancement, path-traced skin subsurface scattering, ultra-realistic 16k textures, absolute identity preservation, tack-sharp editorial focus, visible skin pores, fine facial lines"
 };
 
 export const LIGHTING_STYLES: Record<LightingIntensity, string> = {
-  soft: "ethereal soft cinematic lighting, professional wrap-around light, beauty glow, low contrast",
-  cinematic: "Hollywood blockbuster lighting, moody rim light, volumetric cinematic depth, balanced highlights",
-  dramatic: "dark cinematic shadows, intense chiaroscuro studio lighting, dramatic character highlights, high contrast",
-  intense: "vivid cinematic lighting, sharp high-contrast highlights, electric atmosphere, hard edge light"
+  soft: "ethereal soft cinematic lighting, professional beauty glow, low contrast, natural skin tones, soft wrap-around studio light",
+  cinematic: "Hollywood blockbuster portrait lighting, moody rim light, volumetric depth, balanced highlights and natural shadows, dramatic but gentle",
+  dramatic: "high-contrast cinematic shadows, intense chiaroscuro studio lighting, dramatic facial highlights, deep blacks, sharp textures",
+  intense: "vivid studio lighting, sharp high-contrast highlights, electric atmosphere, ultra-defined facial features, 4k detail"
 };
 
 export const LIGHTING_ICONS: Record<LightingIntensity, string> = {
@@ -31,36 +31,36 @@ export const COLOR_ICONS: Record<ColorGradingStyle, string> = {
 };
 
 export const COLOR_GRADING_STYLES: Record<ColorGradingStyle, string> = {
-  none: "natural film colors, professional cinematic color balance",
-  warm_vintage: "warm vintage movie grade, nostalgic cinema tones, 35mm film look, sepia undertones",
-  cool_noir: "cool blue cinematic grading, high contrast noir, moody film tone, desaturated shadows",
-  teal_orange: "classic teal and orange cinematic color grade, blockbuster aesthetic, vibrant complementary tones",
-  classic_bw: "elegant black and white cinematography, deep blacks, classic movie grain, silver halide look"
+  none: "natural professional cinematic color balance, clean sharp textures, realistic skin tones",
+  warm_vintage: "warm editorial movie grade, nostalgic cinema tones, fine film grain, classic portrait aesthetic",
+  cool_noir: "cool blue cinematic grading, high contrast editorial noir, desaturated shadows, sharp focus on features",
+  teal_orange: "teal and orange professional cinematic color grade, vibrant blockbuster aesthetic, complementary skin tones",
+  classic_bw: "elegant black and white portraiture, silver halide look, deep contrast, classic studio photography"
 };
 
 export const MODEL_NAME = 'gemini-2.5-flash-image';
 
 export const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
   { 
-    id: 'glamour', 
+    id: 'editorial', 
+    labelKey: 'EDITORIAL', 
+    prompt: 'Professional high-end editorial portrait, tack-sharp focus on eyes, hyper-realistic skin pores, individual hair rendering, minimalist luxury studio mood, 4K resolution', 
+    color: 'from-studio-neon to-studio-gold',
+    icon: 'M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z'
+  },
+  { 
+    id: 'vogue', 
     labelKey: 'GLAMOUR', 
-    prompt: 'High-end fashion glamour cinematic style, luxury studio lighting, magazine aesthetic, flawless skin, soft focus background', 
+    prompt: 'Vogue style high-fashion cinematic portrait, luxury lighting, sharp micro-textures, individual hair strands, 8k flawless realism, masterpiece quality', 
     color: 'from-purple-500 to-studio-violet',
     icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z'
   },
   { 
-    id: 'blockbuster', 
+    id: 'hyperreal', 
     labelKey: 'BLOCKBUSTER', 
-    prompt: 'Hollywood action blockbuster style, teal and orange color grading, epic lighting, cinematic flare, high dynamic range', 
+    prompt: 'Ultra-photorealistic close-up, maximum facial detail preservation, pores and subtle wrinkles visible, individual hair strands, cinematic depth of field, 3D studio shadows', 
     color: 'from-orange-500 to-red-600',
     icon: 'M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z'
-  },
-  { 
-    id: 'editorial', 
-    labelKey: 'EDITORIAL', 
-    prompt: 'Professional editorial cinematic portrait, sharp details, minimalist studio mood, artistic framing, muted tones', 
-    color: 'from-studio-neon to-studio-gold',
-    icon: 'M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z'
   }
 ];
 
