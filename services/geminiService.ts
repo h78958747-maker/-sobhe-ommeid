@@ -49,14 +49,13 @@ export const generateEditedImage = async (
   }
 
   const systemInstruction = `You are a world-class Cinematic Portrait Director and Visionary Artist.
-  GOAL: Transform the input portrait into a high-end masterpiece, whether it's ultra-photorealistic or a professional digital painting.
+  GOAL: Transform the input portrait into a high-end masterpiece.
   CRITICAL CONSTRAINTS:
-  1. ABSOLUTE IDENTITY: Maintain 100% of the person's identity, exact likeness, and facial structure from the reference image.
-  2. TEXTURE PRECISION: Focus on authentic textures—if photorealistic, show skin pores and hair strands. If painted, show smooth airbrushed skin and painterly defined hair strands as requested.
-  3. MASTERPIECE QUALITY: Every output must be 4K, noise-free, and artistic in its specific style.
-  4. LIGHTING: Use professional studio-grade lighting with realistic falloff and shadows.
-  5. SAFETY: Strictly adhere to safety guidelines; if an image cannot be generated, provide a concise explanation.
-  ALWAYS prioritize the person's identity and the specific style request in the user prompt.`;
+  1. ABSOLUTE IDENTITY: Maintain 100% of the person's identity and exact facial structure from the reference image.
+  2. TEXTURE PRECISION: Focus on authentic high-fidelity textures based on the chosen style.
+  3. MASTERPIECE QUALITY: Output must be 4K, artistic, and cinematic.
+  4. LIGHTING: Use professional studio lighting with realistic falloff.
+  ALWAYS prioritize identity preservation above all else.`;
 
   try {
     const mimeType = getMimeType(base64Image);
@@ -71,8 +70,7 @@ export const generateEditedImage = async (
       contents: {
         parts: [
           { inlineData: { mimeType, data: cleanBase64(base64Image) } },
-          { text: `MASTER TASK: Synthesize a high-end masterpiece portrait based on the reference. 
-          REQUIREMENTS: Preserving the person's exact identity and facial structure with extreme accuracy. 
+          { text: `MASTER TASK: Synthesize a high-end masterpiece portrait preserving 100% facial structure. 
           STYLING: ${prompt}` },
         ],
       },
@@ -85,7 +83,7 @@ export const generateEditedImage = async (
     });
 
     const candidate = response.candidates?.[0];
-    if (!candidate) {
+    if (!candidate || !candidate.content) {
       throw new Error("ERR_ENGINE_FAILURE");
     }
     
@@ -93,26 +91,29 @@ export const generateEditedImage = async (
       throw new Error("ERR_SAFETY");
     }
 
-    const parts = candidate.content?.parts || [];
+    const parts = candidate.content.parts || [];
     let textRefusal = "";
 
-    // Iterate through all parts to find the image part
+    // Comprehensive search for image data in all response parts
     for (const part of parts) {
-      if (part.inlineData?.data) {
-        return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+      if (part.inlineData && part.inlineData.data) {
+        const data = part.inlineData.data;
+        const mType = part.inlineData.mimeType || 'image/png';
+        return `data:${mType};base64,${data}`;
       }
       if (part.text) {
         textRefusal += part.text;
       }
     }
 
-    // If no image part was found, check if there's a textual refusal
+    // Handle cases where the model only returns text (refusal or description)
     if (textRefusal.trim().length > 0) {
-      const lowerText = textRefusal.toLowerCase();
-      if (lowerText.includes("safety") || lowerText.includes("cannot generate") || lowerText.includes("unable to")) {
+      const lower = textRefusal.toLowerCase();
+      if (lower.includes("safety") || lower.includes("cannot") || lower.includes("unable")) {
         throw new Error("ERR_SAFETY");
       }
-      throw new Error(textRefusal);
+      // If it's just a description without an image, it's a failure for our purpose
+      throw new Error("ERR_ENGINE_FAILURE");
     }
 
     throw new Error("ERR_ENGINE_FAILURE");
@@ -123,9 +124,12 @@ export const generateEditedImage = async (
     if (errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("429")) throw new Error("ERR_QUOTA");
     if (errorMsg.includes("INVALID_ARGUMENT")) throw new Error("ERR_INVALID_REQUEST");
     if (errorMsg.includes("ERR_FORMAT")) throw new Error("ERR_FORMAT");
-    if (errorMsg.includes("ERR_ENGINE_FAILURE")) throw new Error("ERR_ENGINE_FAILURE");
     
-    // Catch-all for other API errors
+    // Explicitly re-throw our internal errors
+    if (["ERR_ENGINE_FAILURE", "ERR_SAFETY", "ERR_FORMAT", "ERR_QUOTA", "ERR_INVALID_REQUEST"].includes(error.message)) {
+      throw error;
+    }
+    
     throw new Error("ERR_GENERIC");
   }
 };
@@ -136,7 +140,7 @@ export const getPromptSuggestions = async (
   adjustments?: ImageAdjustments
 ): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "Analyze the image and request for cinematic enhancement. Return exactly 8 high-end professional photography or artistic keywords focusing on textures and mood (e.g., 'digital airbrushing', 'anamorphic bokeh', 'hyper-realistic skin pores', 'painterly hair strands') as a JSON array of strings.";
+  const systemInstruction = "Analyze the image and request. Return 8 professional cinematic keywords as a JSON array of strings.";
 
   const parts: any[] = [];
   if (imageContext) {
@@ -171,7 +175,7 @@ export const sendChatMessage = async (
   imageContext?: string | null
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemInstruction = "You are a professional Artistic Director helping a user refine their portrait prompts for maximum quality. Focus on technical terms like lighting, depth of field, and textures—whether photorealistic or painterly.";
+  const systemInstruction = "You are a professional Artistic Director helping a user refine their portrait prompts.";
 
   const parts: any[] = [];
   if (imageContext) {

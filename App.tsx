@@ -64,7 +64,6 @@ const App: React.FC = () => {
     if (!selectedImage || processing.isLoading) return;
     playClick();
 
-    // Reset processing state
     const initialStatus = t[LOADING_MESSAGES[0]] || t.rendering;
     setProcessing({ 
       isLoading: true, 
@@ -74,7 +73,6 @@ const App: React.FC = () => {
       currentStageKey: LOADING_MESSAGES[0]
     });
     
-    // Timer to cycle through messages and simulate progress
     const stages = [
       { key: LOADING_MESSAGES[0], targetProgress: 30, time: 2000 },
       { key: LOADING_MESSAGES[1], targetProgress: 60, time: 5000 },
@@ -86,18 +84,13 @@ const App: React.FC = () => {
 
     loadingIntervalRef.current = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
-      
-      // Determine current stage based on elapsed time
       if (currentStageIndex < stages.length - 1 && elapsed > stages[currentStageIndex + 1].time) {
         currentStageIndex++;
       }
-
       const stage = stages[currentStageIndex];
       const prevStageProgress = currentStageIndex > 0 ? stages[currentStageIndex - 1].targetProgress : 5;
       const stageDuration = currentStageIndex > 0 ? stage.time - stages[currentStageIndex - 1].time : stage.time;
       const stageElapsed = currentStageIndex > 0 ? elapsed - stages[currentStageIndex - 1].time : elapsed;
-      
-      // Interpolate progress within the stage
       const stagePercent = Math.min(stageElapsed / stageDuration, 1);
       const currentProgress = prevStageProgress + (stage.targetProgress - prevStageProgress) * stagePercent;
 
@@ -173,21 +166,32 @@ const App: React.FC = () => {
       currentStageKey: 'batch'
     });
 
-    const results: string[] = [];
     const updatedBatch = [...batchItems];
+    let firstSuccessfulResult: string | null = null;
+    let firstSuccessfulOriginal: string | null = null;
 
     try {
       for (let i = 0; i < batchItems.length; i++) {
-        setProcessing(prev => ({ ...prev, batchCurrent: i + 1, progress: Math.round(((i + 1) / batchItems.length) * 100) }));
+        setProcessing(prev => ({ 
+          ...prev, 
+          batchCurrent: i + 1, 
+          progress: Math.round(((i + 1) / batchItems.length) * 100) 
+        }));
+        
         updatedBatch[i].status = 'processing';
         setBatchItems([...updatedBatch]);
 
         const prompt = `${DEFAULT_PROMPT} style: ${LIGHTING_STYLES[lighting]}, colors: ${COLOR_GRADING_STYLES[colorGrading]}. ${description}`;
+        
         try {
           const result = await generateEditedImage(batchItems[i].original, prompt, aspectRatio);
-          results.push(result);
           updatedBatch[i].status = 'done';
           updatedBatch[i].result = result;
+          
+          if (!firstSuccessfulResult) {
+            firstSuccessfulResult = result;
+            firstSuccessfulOriginal = batchItems[i].original;
+          }
           
           await saveHistoryItem({
             id: `batch-${Date.now()}-${i}`,
@@ -200,14 +204,17 @@ const App: React.FC = () => {
             colorGrading
           });
         } catch (itemErr: any) {
+          console.error(`Batch item ${i} failed:`, itemErr);
           updatedBatch[i].status = 'error';
           updatedBatch[i].error = itemErr.message;
         }
         setBatchItems([...updatedBatch]);
       }
+      
       playSuccess();
-      if (results.length > 0) {
-        setResultImage(results[0]);
+      if (firstSuccessfulResult) {
+        setResultImage(firstSuccessfulResult);
+        setSelectedImage(firstSuccessfulOriginal); // Set the correct original for comparison
         setVideoUrl(null);
         setShowLiveView(false);
       }
@@ -232,6 +239,16 @@ const App: React.FC = () => {
       setSelectedImage(img);
       setBatchItems([]);
     }
+  };
+
+  const handleBatchResultSelect = (item: BatchItem) => {
+    if (item.status !== 'done' || !item.result) return;
+    playClick();
+    setResultImage(item.result);
+    setSelectedImage(item.original); // Update original to match result for comparison slider
+    setVideoUrl(null);
+    setShowLiveView(false);
+    setComparisonMode(false);
   };
 
   const handleSendMessage = async (text: string) => {
@@ -397,7 +414,6 @@ const App: React.FC = () => {
           <section className="lg:col-span-5 p-8 flex flex-col h-full items-center space-y-8 overflow-y-auto custom-scrollbar animate-reveal">
              {processing.isLoading && (
                 <div className={`w-full bg-black/60 border border-studio-neon/30 p-10 rounded-[4rem] space-y-8 animate-reveal backdrop-blur-3xl shadow-[0_0_100px_rgba(0,240,255,0.1)] relative overflow-hidden group transition-all duration-1000 ${processing.currentStageKey === 'loadLighting' ? 'ring-2 ring-studio-neon/40' : ''}`}>
-                   {/* Load Lighting Visual Cues */}
                    {processing.currentStageKey === 'loadLighting' && (
                       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
                         <div className="absolute top-0 -left-1/4 w-1/2 h-full bg-gradient-to-r from-transparent via-studio-neon/20 to-transparent animate-shimmer-fast"></div>
@@ -422,7 +438,6 @@ const App: React.FC = () => {
                            className="h-full bg-gradient-to-r from-studio-neon via-studio-violet to-studio-gold shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-700 ease-out rounded-full relative overflow-hidden" 
                            style={{ width: `${processing.progress}%` }}
                          >
-                            {/* Finalizing Shimmer Effect */}
                             <div className={`absolute inset-0 bg-white/20 transition-opacity duration-1000 ${processing.currentStageKey === 'loadFinalizing' ? 'animate-shimmer-fast opacity-80' : 'animate-shimmer-fast opacity-30'}`}></div>
                          </div>
                       </div>
@@ -574,7 +589,7 @@ const App: React.FC = () => {
                     item.status === 'done' && (
                       <button 
                         key={item.id} 
-                        onClick={() => { setResultImage(item.result!); setVideoUrl(null); setShowLiveView(false); setComparisonMode(false); }}
+                        onClick={() => handleBatchResultSelect(item)}
                         className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${resultImage === item.result ? 'border-studio-neon scale-110 shadow-neon-blue' : 'border-white/10 hover:border-white/30'}`}
                       >
                         <img src={item.result} className="w-full h-full object-cover" alt="Result Thumb" />
